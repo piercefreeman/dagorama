@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "dagorama"
+version = "0.1.0"
+description = ""
+authors = ["Pierce Freeman <pierce@freeman.vc>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.982"
+isort = "^5.10.1"
+pytest = "^7.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
