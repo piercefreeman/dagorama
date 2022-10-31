@@ -1,0 +1,61 @@
+name: Dagorama Tests
+
+on:
+  push
+
+jobs:
+  run_tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install poetry
+        run:
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install
+        run: |
+          export PATH="/Users/runner/.local/bin:$PATH"
+          poetry install
+
+      - name: Run tests
+        run: |
+          poetry run pytest
+
+  run_typehinting:
+    name: Run typehinting
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python: ["3.10"]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install poetry
+        run:
+          curl -sSL https://install.python-poetry.org | python3 -
+
+      - name: Install
+        run: |
+          export PATH="/Users/runner/.local/bin:$PATH"
+          poetry install
+
+      - name: Run typehinting
+        run: |
+          poetry run mypy .
