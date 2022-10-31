@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
-from functools import wraps
-from dataclasses import dataclass
-from uuid import UUID, uuid4
 from collections.abc import Callable
-from typing import TypeVar, ParamSpec, cast
-from typing import Any
+from dataclasses import dataclass
+from functools import wraps
+from typing import Any, ParamSpec, TypeVar, cast
+from uuid import UUID, uuid4
+
 from dagorama.serializer import function_to_name
+
 
 @dataclass
 class DAGPromise:
@@ -20,8 +21,8 @@ class DAGPromise:
     # Technically these should not be "Any" but should be any object type that
     # can be pickled / json encoded over the wire
     # We should add a validation step to make sure this is true at call time
-    calltime_args: list["DAGPromise" | Any] = None
-    calltime_kwargs: dict[str, "DAGPromise" | Any] = None
+    calltime_args: list["DAGPromise" | Any]
+    calltime_kwargs: dict[str, "DAGPromise" | Any]
 
 
 RUN_LOOP_PROMISES: list[DAGPromise] = []
@@ -57,18 +58,22 @@ def dagorama(
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         #@wraps(func)
-        def wrapper(*args: P.args, greedy_execution=False, **kwargs: P.kwargs) -> T:
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            # Can't be provided as an explicit keyword parameter because of a mypy constraint with P.kwargs having
+            # to capture everything
+            # https://github.com/python/typing/discussions/1191
+            greedy_execution = kwargs.pop("greedy_execution", False)
             if greedy_execution:
                 return func(*args, **kwargs)
 
             # Determine if first argument is the class itself - if so we
             # should ignore this within the DAG
-            if args and isinstance(args[0], DAGDefinition):
-                args = args[1:]
+            cache_args = list(args[1:]) if args and isinstance(args[0], DAGDefinition) else list(args)
+            cached_kwargs = kwargs
 
             # This function will have a result
             # Queue in the DAG backend
-            promise = DAGPromise(uuid4(), function_to_name(func), args, kwargs)
+            promise = DAGPromise(uuid4(), function_to_name(func), cache_args, cached_kwargs)
             RUN_LOOP_PROMISES.append(promise)
             #return func(*args, **kwargs)
             return cast(
@@ -77,6 +82,5 @@ def dagorama(
                 # https://docs.python.org/3/library/typing.html#typing.ParamSpec
                 T, promise,
             )
-        wrapper.original_fn = func
         return wrapper
     return decorator

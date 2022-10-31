@@ -1,6 +1,8 @@
 
-from inspect import getmodulename, isclass
 from importlib import import_module
+from inspect import getmodulename, isclass
+from typing import Any
+
 
 def function_to_name(func):
     module_name = getmodulename(func.__globals__["__file__"])
@@ -11,7 +13,7 @@ def function_to_name(func):
 # Global cache of functions, since performing the dependency import and function
 # lookup is non-trivial and occurs frequently within each DAG worker
 # name -> function
-CACHED_FUNCTIONS = {}
+CACHED_FUNCTIONS : dict[str, Any] = {}
 
 def name_to_function(name: str):
     if name in CACHED_FUNCTIONS:
