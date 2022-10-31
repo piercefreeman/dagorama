@@ -5,6 +5,7 @@ from uuid import UUID, uuid4
 from collections.abc import Callable
 from typing import TypeVar, ParamSpec, cast
 from typing import Any
+from dagorama.serializer import function_to_name
 
 @dataclass
 class DAGPromise:
@@ -56,7 +57,10 @@ def dagorama(
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         #@wraps(func)
-        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        def wrapper(*args: P.args, greedy_execution=False, **kwargs: P.kwargs) -> T:
+            if greedy_execution:
+                return func(*args, **kwargs)
+
             # Determine if first argument is the class itself - if so we
             # should ignore this within the DAG
             if args and isinstance(args[0], DAGDefinition):
@@ -64,7 +68,7 @@ def dagorama(
 
             # This function will have a result
             # Queue in the DAG backend
-            promise = DAGPromise(uuid4(), func.__name__, args, kwargs)
+            promise = DAGPromise(uuid4(), function_to_name(func), args, kwargs)
             RUN_LOOP_PROMISES.append(promise)
             #return func(*args, **kwargs)
             return cast(
