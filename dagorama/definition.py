@@ -44,7 +44,7 @@ P = ParamSpec('P')
 
 
 def dagorama(
-    bind_runners: list[str] = None
+    taint_name: list[str] = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     The actual return type of functions wrapped with @dagorama() will be a DAGPromise. This is not what we want during
@@ -52,8 +52,8 @@ def dagorama(
     fulfilled and the values are passed downstream. A decorator gives us this behavior because we're only performing the
     wrap at runtime, so the type hinting will correctly recommend the full-fledged type.
 
-    :param bind_runners: Specified runner names that are allowed to perform this function. This is
-        used in cases where there are specific compute resources that should own one phase of the pipeline.
+    :param taint: When a taint is provided, workers will need to explicitly provide a toleration to execute. This is used
+        in cases where there are specific compute resources that should own one phase of the pipeline.
 
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
