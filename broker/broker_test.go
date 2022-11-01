@@ -6,6 +6,7 @@ import (
 
 func TestBroker(t *testing.T) {
 	broker := NewBroker()
+	worker := &Worker{}
 	instance := broker.NewInstance("1")
 
 	// Entrypoint and one function

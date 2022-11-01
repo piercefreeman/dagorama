@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+option go_package = "dagorama/api";
+
+package main;
+
+service Dagorama {
+  rpc CreateWorker(WorkerConfigurationMessage) returns (WorkerMessage) {}
+
+  rpc CreateInstance(InstanceConfigurationMessage) returns (InstanceMessage) {}
+
+  rpc CreateNode(NodeConfigurationMessage) returns (DAGNodeMessage) {}
+
+  rpc Ping(WorkerMessage) returns (PongMessage) {}
+
+  rpc GetWork(WorkerMessage) returns (DAGNodeMessage) {}
+}
+
+message WorkerConfigurationMessage {
+  repeated string excludeQueues = 1;
+  repeated string includeQueues = 2;
+  repeated string queueTolerations = 3;
+}
+
+message WorkerMessage {
+  string identifier = 1;
+}
+
+message InstanceConfigurationMessage {
+  string identifier = 1;
+}
+
+message InstanceMessage {
+  string identifier = 1;
+}
+
+message NodeConfigurationMessage {
+  string identifier = 1;
+  string functionName = 2;
+
+  bytes arguments = 3;
+
+  repeated string sourceIds = 4;
+
+  string instanceId = 5;
+}
+
+message DAGNodeMessage {
+  string identifier = 1;
+  string functionName = 2;
+
+  bytes arguments = 3;
+  bytes resolvedValue = 4;
+
+  repeated DAGNodeMessage sources = 5;
+
+  bool completed = 6;
+}
+
+message PongMessage {
+    int64 lastPing = 2;
+}

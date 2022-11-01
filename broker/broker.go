@@ -3,9 +3,31 @@ package main
 import (
 	"math"
 	"sync"
+	"time"
+
+	"github.com/google/uuid"
 )
 
-// TODO: https://github.com/grpc/grpc/blob/v1.50.0/examples/python/route_guide/route_guide_client.py
+type Worker struct {
+	identifier string
+
+	// Milliseconds since epoch of last client ping
+	lastPing int64
+
+	// Constraints on choosing the allowed queues
+	excludeQueues    []string
+	includeQueues    []string
+	queueTolerations []string
+
+	// Cache of allowed queues that the worker is allowed to pull from.
+	// When this list is empty, we will re-compute the allowed queues given
+	// the above defined constraints.
+	allowedQueues []string
+}
+
+func (worker *Worker) Ping() {
+	worker.lastPing = time.Now().UnixNano() / int64(time.Millisecond)
+}
 
 type DAGNode struct {
 	identifier   string
@@ -31,6 +53,10 @@ type DAGNode struct {
 
 	// The instance that spawned this DAG node
 	instance *DAGInstance
+
+	// Worker that is currently executing this node
+	dequeueTimestamp int64
+	dequeueWorker    *Worker
 }
 
 func (node *DAGNode) ValueDidResolve(value []byte) {
@@ -40,6 +66,10 @@ func (node *DAGNode) ValueDidResolve(value []byte) {
 	// Handle resolution
 	node.resolvedValue = value
 	node.completed = true
+
+	// Release the worker lock
+	node.dequeueTimestamp = 0
+	node.dequeueWorker = nil
 
 	// Dequeue destinations
 	// If all are valid, enqueue into the actual DAG queue
@@ -78,6 +108,7 @@ type DAGInstance struct {
 	order      int
 
 	// ID -> DAGNode
+	// Will keep nodes retained until we cleanup the instance
 	nodeLock sync.RWMutex
 	nodes    map[string]*DAGNode
 
@@ -119,9 +150,17 @@ func (instance *DAGInstance) NewNode(
 	return node
 }
 
+func (instance *DAGInstance) GetNode(identifier string) *DAGNode {
+	instance.nodeLock.RLock()
+	defer instance.nodeLock.RUnlock()
+
+	return instance.nodes[identifier]
+}
+
 func (instance *DAGInstance) release() {
 	/*
 	 * Release cached values associated with DAG
+	 * Also destroy the DAGNode objects
 	 * TODO: Execute automatically under some conditions, like all DAG stages
 	 * completed or similar.
 	 */
@@ -135,33 +174,72 @@ type Broker struct {
 
 	// Separate instantiations of each DAG
 	// Mapping of ID -> DAGInstance
-	executionsLock sync.RWMutex
-	executions     map[string]*DAGInstance
+	instancesLock sync.RWMutex
+	instances     map[string]*DAGInstance
+
+	workerLock sync.RWMutex
+	workers    map[string]*Worker
 }
 
 func NewBroker() *Broker {
 	return &Broker{
 		taskQueuesLock: sync.Mutex{},
 		taskQueues:     make(map[string]*HeapQueue),
-		executionsLock: sync.RWMutex{},
-		executions:     make(map[string]*DAGInstance),
+		instancesLock:  sync.RWMutex{},
+		instances:      make(map[string]*DAGInstance),
+		workerLock:     sync.RWMutex{},
+		workers:        make(map[string]*Worker),
 	}
 }
 
+func (broker *Broker) NewWorker(
+	excludeQueues []string,
+	includeQueues []string,
+	queueTolerations []string,
+) *Worker {
+	worker := &Worker{
+		identifier:       uuid.New().String(),
+		excludeQueues:    excludeQueues,
+		includeQueues:    includeQueues,
+		queueTolerations: queueTolerations,
+	}
+	worker.Ping()
+
+	broker.workerLock.Lock()
+	defer broker.workerLock.Unlock()
+	broker.workers[worker.identifier] = worker
+
+	return worker
+}
+
 func (broker *Broker) NewInstance(identifier string) *DAGInstance {
-	broker.executionsLock.Lock()
-	defer broker.executionsLock.Unlock()
+	broker.instancesLock.Lock()
+	defer broker.instancesLock.Unlock()
 
 	instance := &DAGInstance{
 		identifier: identifier,
-		order:      len(broker.executions),
+		order:      len(broker.instances),
 		nodeLock:   sync.RWMutex{},
 		nodes:      make(map[string]*DAGNode),
 		broker:     broker,
 	}
-	broker.executions[identifier] = instance
+	broker.instances[identifier] = instance
 
 	return instance
+}
+
+func (broker *Broker) GetWorker(identifier string) *Worker {
+	broker.workerLock.RLock()
+	defer broker.workerLock.RUnlock()
+
+	return broker.workers[identifier]
+}
+
+func (broker *Broker) GetInstance(identifier string) *DAGInstance {
+	broker.instancesLock.RLock()
+	defer broker.instancesLock.RUnlock()
+
+	return broker.instances[identifier]
 }
 
 func (broker *Broker) EnqueueNode(node *DAGNode) {
@@ -174,13 +252,21 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	// Create the queue if it doesn't exist
 	if _, ok := broker.taskQueues[node.functionName]; !ok {
 		broker.taskQueues[node.functionName] = NewHeapQueue()
+
+		// Clear the cache of allowed worker queues since we have just added
+		// a new one that will invalidate the cache
+		for _, worker := range broker.workers {
+			worker.allowedQueues = []string{}
+		}
 	}
 
 	// Add to queue
 	broker.taskQueues[node.functionName].PushItem(node, node.instance.order)
 }
 
-func (broker *Broker) PopNextNode(queues []string) *DAGNode {
+func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
+	// Re-calculate the cached values if we have them
+
 	// Find the queue with the minimum priority
 	// Ties in priority from different queues will choose an item arbitrarily
 	broker.taskQueuesLock.Lock()
@@ -189,7 +275,14 @@ func (broker *Broker) PopNextNode(queues []string) *DAGNode {
 	minimumPriority := math.MaxInt64
 	minimumQueueName := ""
 
+	allowedQueues := broker.getAllowedQueues(worker)
+
 	for queueName, queue := range broker.taskQueues {
+		// Only support the given queues
+		if !contains(allowedQueues, queueName) {
+			continue
+		}
+
 		topItem := queue.PeekItem()
 		if topItem == nil {
 			continue
@@ -206,19 +299,25 @@ func (broker *Broker) PopNextNode(queues []string) *DAGNode {
 		return nil
 	}
 
-	return broker.taskQueues[minimumQueueName].PopItem().node
+	node := broker.taskQueues[minimumQueueName].PopItem().node
+
+	// Assign to the given worker
+	node.dequeueTimestamp = time.Now().Unix()
+	node.dequeueWorker = worker
+
+	return node
 }
 
-func (broker *Broker) filterForQueues(
-	excludeQueues []string,
-	includeQueues []string,
-	queueTolerations []string,
-) []string {
+func (broker *Broker) getAllowedQueues(worker *Worker) []string {
 	/*
 	 * Queues that are specifically parameterized by a "worker_taint"
 	 * need to be specifically picked up by a worker with it provided
 	 * in the `queue_tolerations`
 	 */
+	if len(worker.allowedQueues) > 0 {
+		return worker.allowedQueues
+	}
+
 	allQueues := make([]string, 0)
 	for queueName, _ := range broker.taskQueues {
 		allQueues = append(allQueues, queueName)
@@ -226,23 +325,24 @@ func (broker *Broker) filterForQueues(
 
 	// If include_queues is provided, we need to limit our search
 	// to only those queues
-	if len(includeQueues) > 0 {
+	if len(worker.includeQueues) > 0 {
 		allQueues = filterSlice(allQueues, func(queueName string) bool {
-			return contains(includeQueues, queueName)
+			return contains(worker.includeQueues, queueName)
 		})
 	}
 
 	// Exclude the listed queues
 	allQueues = filterSlice(allQueues, func(queueName string) bool {
-		return !contains(excludeQueues, queueName)
+		return !contains(worker.excludeQueues, queueName)
 	})
 
 	// If a toleration is provided on the queue, make sure it is in our
 	// list of tolerations
 	allQueues = filterSlice(allQueues, func(queueName string) bool {
 		queue := broker.taskQueues[queueName]
-		return contains(queueTolerations, queue.taint)
+		return contains(worker.queueTolerations, queue.taint)
 	})
 
+	worker.allowedQueues = allQueues
 	return allQueues
 }
