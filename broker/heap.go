@@ -65,10 +65,22 @@ func (queue *HeapQueue) UpdateItem(item *QueuedJob, node *DAGNode, priority int)
 	heap.Fix(&queue.heap, item.index)
 }
 
-func (queue *HeapQueue) PopItem() *DAGNode {
+func (queue *HeapQueue) PopItem() *QueuedJob {
 	queue.accessLock.Lock()
 	defer queue.accessLock.Unlock()
-	return heap.Pop(&queue.heap).(*QueuedJob).node
+	if len(queue.heap) == 0 {
+		return nil
+	}
+	return heap.Pop(&queue.heap).(*QueuedJob)
+}
+
+func (queue *HeapQueue) PeekItem() *QueuedJob {
+	queue.accessLock.Lock()
+	defer queue.accessLock.Unlock()
+	if len(queue.heap) == 0 {
+		return nil
+	}
+	return queue.heap[0]
 }
 
 /*

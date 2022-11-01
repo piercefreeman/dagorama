@@ -1,5 +1,7 @@
+package main
+
 // This should remain constant for each worker runtime, only compute once
-validWorkerQueues := (
+/*validWorkerQueues := (
 	excludeQueues []string,
 	includeQueues []string,
 	queueTolerations []string,
@@ -8,4 +10,4 @@ validWorkerQueues := (
 
 newRequest {
 	broker.popJob()
-}
+}*/
