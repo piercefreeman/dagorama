@@ -34,6 +34,10 @@ type DAGNode struct {
 	identifier   string
 	functionName string
 
+	// Hash of function code logic, used by workers to determine if their local
+	// version of the code is the same as the version that was queued originally
+	functionHash string
+
 	// The arguments array should contain all arguments that are passed to this node, including
 	// client side
 	arguments []byte
@@ -119,12 +123,14 @@ type DAGInstance struct {
 func (instance *DAGInstance) NewNode(
 	identifier string,
 	functionName string,
+	functionHash string,
 	arguments []byte,
 	sources []*DAGNode,
 ) *DAGNode {
 	node := &DAGNode{
 		identifier:   identifier,
 		functionName: functionName,
+		functionHash: functionHash,
 		arguments:    arguments,
 		sources:      sources,
 		destinations: make([]*DAGNode, 0),

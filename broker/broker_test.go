@@ -10,8 +10,8 @@ func TestBroker(t *testing.T) {
 	instance := broker.NewInstance("1")
 
 	// Entrypoint and one function
-	entrypoint := instance.NewNode("A", "Entrypoint", []byte{}, []*DAGNode{})
-	instance.NewNode("B", "Secondary", []byte{}, []*DAGNode{entrypoint})
+	entrypoint := instance.NewNode("A", "Entrypoint", "hash(1)", []byte{}, []*DAGNode{})
+	instance.NewNode("B", "Secondary", "hash(2)", []byte{}, []*DAGNode{entrypoint})
 
 	worker := &Worker{
 		// All queues

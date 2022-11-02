@@ -44,6 +44,7 @@ func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationM
 	node := instance.NewNode(
 		in.Identifier,
 		in.FunctionName,
+		in.FunctionHash,
 		in.Arguments,
 		sourceNodes,
 	)
@@ -109,6 +110,7 @@ func (s *BrokerServer) nodeToMessage(node *DAGNode) *pb.NodeMessage {
 	return &pb.NodeMessage{
 		Identifier:    node.identifier,
 		FunctionName:  node.functionName,
+		FunctionHash:  node.functionHash,
 		Arguments:     node.arguments,
 		ResolvedValue: node.resolvedValue,
 		Sources:       sourceMessages,
