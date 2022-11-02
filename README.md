@@ -159,6 +159,12 @@ A `@dagorama` decorated function will _look_ like it returns the typehinted valu
 
 There are some situations where you want to limit the functions that will run on certain hardware. A common case is for ML functions to only be run on GPU accelerated devices. We follow the kubernetes model here by adding a taint to each function that shouldn't be deployed by default, like `@dagorama(taint_name="GPU")`. To pull from this queue workers will have to explicitly specify this taint, otherwise they won't pull from the backing queue.
 
+To launch a worker function, install the python package in your virtualenv and run:
+
+```
+worker [--include-queue {queue}] [--exclude-queue {queue}] [--toleration {toleration}]
+```
+
 ## Production Deployment (WIP)
 
 Outside of local testing, you probably won't want to run the workers on your same machine. Instead you'll want to distribute them across multiple machines. In this setup we recommend:
