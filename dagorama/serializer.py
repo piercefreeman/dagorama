@@ -8,33 +8,24 @@ from typing import cast
 
 
 def function_to_name(func):
-    module_name = getmodulename(func.__globals__["__file__"])
+    module_name = func.__globals__["__name__"]
     class_path = func.__qualname__
 
     return f"{module_name}:{class_path}"
 
-# Global cache of functions, since performing the dependency import and function
-# lookup is non-trivial and occurs frequently within each DAG worker
-# name -> function
-#CACHED_FUNCTIONS : dict[str, Any] = {}
 
 def name_to_function(name: str, instance_id: UUID):
-    #if name in CACHED_FUNCTIONS:
-    #    return CACHED_FUNCTIONS[name]
-
     # Can also try to sniff for function names throughout entire global namespace, but this
     # is still conditioned on name conventions
     package_name, fn_path = name.split(":")
     fn_path_components = fn_path.split(".")
 
-    mod = import_module(package_name)
+    try:
+        mod = import_module(package_name)
+    except ModuleNotFoundError:
+        raise ValueError(f"Could not import function with path: {name}")
 
-    for i, component in enumerate(fn_path_components):
-        #component_name = f"{package_name}:{'.'.join(fn_path_components[:i+1])}"
-        #if component_name in CACHED_FUNCTIONS:
-        #    mod = CACHED_FUNCTIONS[component_name]
-        #    continue
-
+    for component in fn_path_components:
         if not hasattr(mod, component):
             raise ValueError(f"Unable to resolve dagorama function: {name}")
 
@@ -46,6 +37,5 @@ def name_to_function(name: str, instance_id: UUID):
         elif isclass(mod):
             # Assume we can instantiate classes with no init arguments
             mod = mod()
-        #CACHED_FUNCTIONS[component_name] = mod
 
     return mod

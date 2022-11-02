@@ -37,18 +37,10 @@ class CustomDag(DAGDefinition):
         return sum(numbers)
 
 
-if __name__ == "__main__":
+def test_sample_dag():
     dag = CustomDag()
     dag_result = dag(1)
-
-    # This should only be used in situations where blocking code on results is really
-    # desirable, like in testing. In practice there might be errors with the DAG that
-    # result in this infinite blocking so this is not recommended.
-    # Add timeout to the resolution
-    #await dag_result.resolve()
 
     execute(infinite_loop=False)
 
     assert resolve(dag, dag_result) == 9
-
-    print("DONE")
