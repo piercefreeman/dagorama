@@ -1,17 +1,15 @@
 from pickle import dumps, loads
 from time import sleep
-from typing import Any
-from uuid import UUID
+from contextlib import contextmanager
 
 import grpc
 
 import dagorama.api.api_pb2 as pb2
-import dagorama.api.api_pb2_grpc as pb2_grpc
-from dagorama.definition import DAGDefinition, dagorama_context
+from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
 from dagorama.models.arguments import DAGArguments
-from dagorama.models.promise import DAGPromise
 from dagorama.serializer import name_to_function
+from multiprocessing import Process
 
 
 def execute(
@@ -69,3 +67,22 @@ def execute(
                     result=dumps(result),
                 )
             )
+
+
+@contextmanager
+def launch_workers(n: int = 1):
+    """
+    Helper function to spawn multiple workers without having to launch
+    them in separate shell sessions.
+
+    Mostly intended for unit testing.
+
+    """
+    workers = [Process(target=execute) for _ in range(n)]
+    for worker in workers:
+        worker.start()
+
+    yield
+
+    for worker in workers:
+        worker.terminate()
