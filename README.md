@@ -33,12 +33,16 @@ class MyTask:
     def rollup_statuses(self, responses: list[int]):
         return Counter([status for status in responses])
 
-start = time()
-task = MyTask()
-response = task.entrypoint()
-end = time()
-print(f"Response: {response} in {round(end-start, 2)}s")
-assert response == Counter({0: 2, 1: 2})
+def main():
+    start = time()
+    task = MyTask()
+    response = task.entrypoint()
+    end = time()
+    print(f"Response: {response} in {round(end-start, 2)}s")
+    assert response == Counter({0: 2, 1: 2})
+
+if __name__ == "__main__":
+    main()
 ```
 
 If you let this run, you should see an echoed counter after a bit of processing.
@@ -145,9 +149,11 @@ This is the core design goal of dagorama: write vanilla python and scale easily.
 
 This section attempts to be the only section you'll need to know to use dagorama in day-to-day development, without starting to offroad.
 
-Each group of logical code that you want to flow to one another should be contained in a class that inherits from `DAGDefinition`. You'll want this code to be. Each python instance of a `DAGDefinition` is a one given run of the functions within the DAG.
+Each group of logical code that you want to flow to one another should be contained in a class that inherits from `DAGDefinition`. You'll want this code to be deployed on each worker node so they're able to access the same core definition files. Docker is the preferred mechanism to ensure that the same code is mirrored on each device and computations will happen as expected. Each instance of a DAGDefinition created via `DAGDefinition()` wraps one run of the functions within the DAG. If you're processing 5 separate input images, for example, you'll want to spawn 5 DAGDefinitions.
 
-Each function that you want to execute on a separate machine should be wrapped in a `@dagorama` decorator. Calls to this function will be added to the computational graph. Class functions that aren't decorated will be run inline to the current executor.
+The dagorama broker will ensure that earlier DAG instances will complete before ones that are invoked later.
+
+Each function that you want to execute on a separate machine should be wrapped in a `@dagorama` decorator. Calls to this function will be added to the computational graph and distributed appropriately. Class functions that aren't decorated will be run inline to the current executor.
 
 A `@dagorama` decorated function will _look_ like it returns the typehinted values to static analyzers like mypy. This allows you to write more interpretable code by passing around logical values. In reality, however, @dagorama functions will return a `DAGPromise` at runtime. This DAGPromise is meaningless - it doesn't have a value yet, since it hasn't yet been passed to a runner. These response values should only be passed to other `@dagorama` decorated functions as function arguments. When this is done workers will only execute that function once all its dependencies have been realized.
 
