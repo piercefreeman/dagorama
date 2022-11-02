@@ -26,5 +26,11 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 When you update the grpc files, re-generate the client and server definition files via:
 
 ```
-./build.sh
+./build_protobuf.sh
+```
+
+If you want to run unit tests you'll:
+
+```
+poetry run pip install -e ./dagorama-broker
 ```

@@ -19,14 +19,24 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '^1.18.1'
+
+      - name: Install go dependencies
+        run: |
+          (cd broker && go install)
+          ./build.sh
+
       - name: Install poetry
         run:
           curl -sSL https://install.python-poetry.org | python3 -
 
-      - name: Install
+      - name: Install python dependencies
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
           poetry install
+          poetry run pip install -e ./dagorama-broker
 
       - name: Run tests
         run: |

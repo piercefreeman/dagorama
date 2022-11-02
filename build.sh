@@ -1,30 +1,15 @@
+#! /bin/bash -e
 
-# Golang generation
+scriptPath=$(realpath $0)
+rootDirectory="$(dirname "$scriptPath")"
 
-(
-    mkdir -p broker/api \
-    && protoc \
-            -I./protos/dagorama/api \
-            --go_out=./broker/api \
-            --go_opt=paths=source_relative \
-            --go-grpc_out=./broker/api \
-            --go-grpc_opt=paths=source_relative \
-            protos/dagorama/api/api.proto
-)
+# Remove old cached files
+rm -rf $rootDirectory/build
+rm -rf $rootDirectory/dagorama-broker/dagorama_broker/assets/dagorama
 
-# Python generation
-# We explicitly set up the protos directory to mirror the structure of the python
-# application so imports are relative to the root `dagorama` package
+# Build
+mkdir -p $rootDirectory/build
+(cd $rootDirectory/broker && go build -o $rootDirectory/build)
 
-(
-    mkdir -p dagorama/api \
-    && touch dagorama/api/__init__.py \
-    && poetry run python -m grpc_tools.protoc \
-        -I./protos \
-        --python_out=. \
-        --grpc_python_out=. \
-        --mypy_out=. \
-        --mypy_grpc_out=. \
-        protos/dagorama/api/api.proto
-
-)
+# Manual Python install
+cp $rootDirectory/build/dagorama $rootDirectory/dagorama-broker/dagorama_broker/assets/dagorama

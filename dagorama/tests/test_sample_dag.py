@@ -37,7 +37,7 @@ class CustomDag(DAGDefinition):
         return sum(numbers)
 
 
-def test_sample_dag():
+def test_sample_dag(broker):
     dag = CustomDag()
     dag_result = dag(1)
 
