@@ -2,6 +2,7 @@
 from importlib import import_module
 from inspect import getmodulename, isclass
 from uuid import UUID
+
 from dagorama.definition import DAGDefinition
 
 

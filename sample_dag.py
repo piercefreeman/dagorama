@@ -1,5 +1,5 @@
-from dagorama.definition import DAGDefinition
 from dagorama.decorators import dagorama
+from dagorama.definition import DAGDefinition, resolve
 from dagorama.runner import execute
 
 
@@ -47,11 +47,8 @@ if __name__ == "__main__":
     # Add timeout to the resolution
     #await dag_result.resolve()
 
-    execute()
+    execute(infinite_loop=False)
 
-    # unresolved: list[DAGPromise] = []
-    # final_result = resolve_promises(dag_result, unresolved)
-    # assert not unresolved
-    # assert final_result == 9
+    assert resolve(dag, dag_result) == 9
 
     print("DONE")

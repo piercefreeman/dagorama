@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
+from contextlib import contextmanager
+from pickle import loads
 from typing import cast
 from uuid import UUID, uuid4
 
 import grpc
+
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
-from contextlib import contextmanager
 from dagorama.models.promise import DAGPromise
-
 
 RUN_LOOP_PROMISES: list[DAGPromise] = []
 
@@ -44,3 +45,38 @@ class DAGDefinition(ABC):
     @abstractmethod
     def entrypoint(self, *args, **kwargs):
         pass
+
+
+def resolve(dag: DAGDefinition, promise: DAGPromise):
+    """
+    Given a promise (typically of the initial_entrypoint), will recursively resolve
+    promises in a return value chain.
+
+    ie. Promise A -> Promise B -> Promise C will shortcut to Promise C, which will
+    then return the true value.
+
+    """
+    # TODO: Remove the DAGDefinition, we should be able to infer
+    # the instance ID from the promise
+
+    with dagorama_context() as context:
+        current_return_value = promise
+
+        while isinstance(current_return_value, DAGPromise):
+            node = context.GetNode(
+                pb2.NodeRetrieveMessage(
+                    instanceId=str(dag.instance_id),
+                    identifier=str(current_return_value.identifier),
+                )
+            )
+
+            if node.resolvedValue is None:
+                return None
+
+            resolved = loads(node.resolvedValue)
+            if resolved is None:
+                return None
+
+            current_return_value = resolved
+
+        return current_return_value

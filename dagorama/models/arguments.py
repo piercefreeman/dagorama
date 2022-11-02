@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from pickle import dumps, loads
 from typing import Any
+
 from dagorama.inspection import extract_promise_identifiers
+
 
 @dataclass
 class DAGArguments:

@@ -60,6 +60,14 @@ func (s *BrokerServer) Ping(ctx context.Context, in *pb.WorkerMessage) (*pb.Pong
 	}, nil
 }
 
+func (s *BrokerServer) GetNode(ctx context.Context, in *pb.NodeRetrieveMessage) (*pb.NodeMessage, error) {
+	log.Printf("Get node")
+	instance := s.broker.GetInstance(in.InstanceId)
+	node := instance.GetNode(in.Identifier)
+
+	return s.nodeToMessage(node), nil
+}
+
 func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.NodeMessage, error) {
 	log.Printf("Get work")
 	worker := s.broker.GetWorker(in.Identifier)

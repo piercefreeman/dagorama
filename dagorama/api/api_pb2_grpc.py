@@ -34,6 +34,11 @@ class DagoramaStub(object):
                 request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
                 response_deserializer=dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
                 )
+        self.GetNode = channel.unary_unary(
+                '/main.Dagorama/GetNode',
+                request_serializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.GetWork = channel.unary_unary(
                 '/main.Dagorama/GetWork',
                 request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
@@ -73,6 +78,12 @@ class DagoramaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def GetNode(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def GetWork(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -107,6 +118,11 @@ def add_DagoramaServicer_to_server(servicer, server):
                     servicer.Ping,
                     request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
                     response_serializer=dagorama_dot_api_dot_api__pb2.PongMessage.SerializeToString,
+            ),
+            'GetNode': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNode,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
             ),
             'GetWork': grpc.unary_unary_rpc_method_handler(
                     servicer.GetWork,
@@ -193,6 +209,23 @@ class Dagorama(object):
         return grpc.experimental.unary_unary(request, target, '/main.Dagorama/Ping',
             dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetNode(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/GetNode',
+            dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.SerializeToString,
+            dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 

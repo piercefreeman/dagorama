@@ -1,25 +1,31 @@
+from pickle import dumps, loads
+from time import sleep
 from typing import Any
 from uuid import UUID
 
-from dagorama.definition import dagorama_context
-from dagorama.models.promise import DAGPromise
-from dagorama.models.arguments import DAGArguments
-from dagorama.serializer import name_to_function
 import grpc
+
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
-from time import sleep
+from dagorama.definition import DAGDefinition, dagorama_context
 from dagorama.inspection import resolve_promises
-from pickle import dumps, loads
+from dagorama.models.arguments import DAGArguments
+from dagorama.models.promise import DAGPromise
+from dagorama.serializer import name_to_function
 
 
-def execute():
+def execute(
+    exclude_queues: list | None = None,
+    include_queues: list | None = None,
+    queue_tolerations: list | None = None,
+    infinite_loop: bool = True,
+):
     with dagorama_context() as context:
         worker = context.CreateWorker(
             pb2.WorkerConfigurationMessage(
-                excludeQueues=[],
-                includeQueues=[],
-                queueTolerations=[],
+                excludeQueues=exclude_queues or [],
+                includeQueues=include_queues or [],
+                queueTolerations=queue_tolerations or [],
             )
         )
 
@@ -28,6 +34,8 @@ def execute():
                 next_item = context.GetWork(worker)
             except grpc._channel._InactiveRpcError as e:
                 if e.details() == "no work available":
+                    if not infinite_loop:
+                        return
                     print("No work available, polling in 1s...")
                     sleep(1)
                     continue

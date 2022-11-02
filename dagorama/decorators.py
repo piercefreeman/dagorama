@@ -2,14 +2,15 @@ from collections.abc import Callable
 from typing import Any, ParamSpec, TypeVar, cast
 from uuid import UUID, uuid4
 
-from dagorama.serializer import function_to_name
 import grpc
+
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
-from dagorama.inspection import find_promises
-from dagorama.models.promise import DAGPromise
-from dagorama.models.arguments import DAGArguments
 from dagorama.definition import DAGDefinition, dagorama_context
+from dagorama.inspection import find_promises
+from dagorama.models.arguments import DAGArguments
+from dagorama.models.promise import DAGPromise
+from dagorama.serializer import function_to_name
 
 T = TypeVar('T')
 P = ParamSpec('P')
