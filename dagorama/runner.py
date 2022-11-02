@@ -13,6 +13,15 @@ from multiprocessing import Process
 from dagorama.code_signature import calculate_function_hash
 
 
+class CodeMismatchException(Exception):
+    """
+    If raised, the queued DAGNode and the current runner are using
+    different versions of the function code.
+
+    """
+    pass
+
+
 def execute(
     exclude_queues: list | None = None,
     include_queues: list | None = None,
@@ -64,7 +73,7 @@ def execute(
             print("FOUND FN", resolved_fn)
             print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
             if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
-                raise ValueError(f"Local function code does not mirror remote spawned function code. This might be due to an outdated worker code deployment.")
+                raise CodeMismatchException()
 
             result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
             print("RESULT", result)

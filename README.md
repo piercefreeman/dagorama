@@ -109,7 +109,7 @@ if __name__ == "__main__":
     main()
 ```
 
-For the sake of fitting this in one script that can be run end-to-end there are a few different things here.
+For the sake of fitting this logic in one script there are a few different things going on here.
 
 1. We've wrapped each function in a `@dagorama` decorator. This decorator indicates that a function execution like `self.perform_work()` or `self.rollup_statuses()` should be performed on a separate worker node. This is akin to launching a new task within a converntional queue.
 2. We launch the background broker with `with launch_broker()`. This will spawn a separate broker process that coordinates across multiple workers.

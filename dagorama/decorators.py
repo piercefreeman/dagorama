@@ -92,6 +92,6 @@ def dagorama(
                 # https://docs.python.org/3/library/typing.html#typing.ParamSpec
                 T, promise,
             )
-        wrapper.original_fn = func
+        wrapper.original_fn = func  # type: ignore
         return wrapper
     return decorator
