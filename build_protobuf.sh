@@ -6,7 +6,7 @@ rootDirectory="$(dirname "$scriptPath")"
 
 # Golang generation
 (
-    cd $rootDirectory
+    cd $rootDirectory \
     && mkdir -p broker/api \
     && protoc \
             -I./protos/dagorama/api \
@@ -21,7 +21,7 @@ rootDirectory="$(dirname "$scriptPath")"
 # We explicitly set up the protos directory to mirror the structure of the python
 # application so imports are relative to the root `dagorama` package
 (
-    cd $rootDirectory
+    cd $rootDirectory \
     && mkdir -p dagorama/api \
     && touch dagorama/api/__init__.py \
     && poetry run python -m grpc_tools.protoc \

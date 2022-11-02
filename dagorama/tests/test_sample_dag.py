@@ -1,6 +1,8 @@
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import execute
+from dagorama.runner import execute, CodeMismatchException
+import pytest
+from contextlib import contextmanager
 
 
 class CustomDag(DAGDefinition):
@@ -37,6 +39,19 @@ class CustomDag(DAGDefinition):
         return sum(numbers)
 
 
+@contextmanager
+def modify_entrypoint_signature():
+    """
+    Mock the DAG entrypoint with a new no-op function in order to change
+    the code signature
+
+    """
+    old_name = CustomDag.entrypoint.original_fn.__name__
+    CustomDag.entrypoint.original_fn.__name__ = "mock-name"
+    yield
+    CustomDag.entrypoint.original_fn.__name__ = old_name
+
+
 def test_sample_dag(broker):
     dag = CustomDag()
     dag_result = dag(1)
@@ -44,3 +59,14 @@ def test_sample_dag(broker):
     execute(infinite_loop=False)
 
     assert resolve(dag, dag_result) == 9
+
+
+def test_sample_dag_worker_code_mismatch(broker):
+    dag = CustomDag()
+
+    # This will queue the entrypoint but not yet execute it
+    dag(1)
+
+    with modify_entrypoint_signature():
+        with pytest.raises(CodeMismatchException):
+            execute(infinite_loop=False)

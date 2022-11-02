@@ -10,6 +10,16 @@ from dagorama.inspection import resolve_promises
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
 from multiprocessing import Process
+from dagorama.code_signature import calculate_function_hash
+
+
+class CodeMismatchException(Exception):
+    """
+    If raised, the queued DAGNode and the current runner are using
+    different versions of the function code.
+
+    """
+    pass
 
 
 def execute(
@@ -57,7 +67,15 @@ def execute(
             print("Resolved", resolved_args)
             print("Resolved", resolved_kwargs)
 
-            result = name_to_function(next_item.functionName, next_item.instanceId)(*resolved_args, greedy_execution=True, **resolved_kwargs)
+            resolved_fn = name_to_function(next_item.functionName, next_item.instanceId)
+
+            # Ensure that we have the correct local version of the function
+            print("FOUND FN", resolved_fn)
+            print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
+            if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
+                raise CodeMismatchException()
+
+            result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
             print("RESULT", result)
 
             context.SubmitWork(

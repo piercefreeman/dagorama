@@ -1,16 +1,15 @@
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar, cast
-from uuid import UUID, uuid4
-
-import grpc
+from typing import ParamSpec, TypeVar, cast
+from uuid import uuid4
+from functools import wraps
 
 import dagorama.api.api_pb2 as pb2
-import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.definition import DAGDefinition, dagorama_context
 from dagorama.inspection import find_promises
 from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
 from dagorama.serializer import function_to_name
+from dagorama.code_signature import calculate_function_hash
 
 T = TypeVar('T')
 P = ParamSpec('P')
@@ -30,7 +29,7 @@ def dagorama(
 
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
-        #@wraps(func)
+        @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
             if not isinstance(args[0], DAGDefinition):
                 raise ValueError("@dagorama can only wrap class methods")
@@ -70,6 +69,7 @@ def dagorama(
                     pb2.NodeConfigurationMessage(
                         identifier=str(promise.identifier),
                         functionName=cast(str, promise.function_name),
+                        functionHash=calculate_function_hash(func),
                         arguments=(
                             cast(
                                 # We know this is a valid argument object because we just set it
@@ -86,14 +86,12 @@ def dagorama(
                     )
                 )
 
-            #RUN_LOOP_PROMISES.append(promise)
-
-            #return func(*args, **kwargs)
             return cast(
                 # Wrong cast of types but we want the static typechecker to believe that the function
                 # is returning the actual value as specified by the client caller
                 # https://docs.python.org/3/library/typing.html#typing.ParamSpec
                 T, promise,
             )
+        wrapper.original_fn = func  # type: ignore
         return wrapper
     return decorator
