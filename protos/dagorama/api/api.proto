@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+option go_package = "dagorama/api";
+
+package main;
+
+service Dagorama {
+  rpc CreateWorker(WorkerConfigurationMessage) returns (WorkerMessage) {}
+
+  rpc CreateInstance(InstanceConfigurationMessage) returns (InstanceMessage) {}
+
+  rpc CreateNode(NodeConfigurationMessage) returns (NodeMessage) {}
+
+  rpc Ping(WorkerMessage) returns (PongMessage) {}
+
+  rpc GetNode(NodeRetrieveMessage) returns (NodeMessage) {}
+  rpc GetWork(WorkerMessage) returns (NodeMessage) {}
+  rpc SubmitWork(WorkCompleteMessage) returns (NodeMessage) {}
+}
+
+message WorkerConfigurationMessage {
+  repeated string excludeQueues = 1;
+  repeated string includeQueues = 2;
+  repeated string queueTolerations = 3;
+}
+
+message WorkerMessage {
+  string identifier = 1;
+}
+
+message InstanceConfigurationMessage {
+  string identifier = 1;
+}
+
+message InstanceMessage {
+  string identifier = 1;
+}
+
+message NodeConfigurationMessage {
+  string identifier = 1;
+  string functionName = 2;
+
+  bytes arguments = 3;
+
+  repeated string sourceIds = 4;
+
+  string instanceId = 5;
+}
+
+message NodeMessage {
+  string identifier = 1;
+  string functionName = 2;
+
+  bytes arguments = 3;
+  bytes resolvedValue = 4;
+
+  repeated NodeMessage sources = 5;
+
+  bool completed = 6;
+
+  string instanceId = 7;
+}
+
+message PongMessage {
+  int64 lastPing = 2;
+}
+
+message WorkCompleteMessage {
+  string instanceId = 1;
+  string nodeId = 2;
+
+  bytes result = 3;
+}
+
+message NodeRetrieveMessage {
+  string instanceId = 1;
+  string identifier = 2;
+}
