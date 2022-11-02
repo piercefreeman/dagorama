@@ -6,7 +6,7 @@ import grpc
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
 from contextlib import contextmanager
-from dagorama.models import DAGPromise
+from dagorama.models.promise import DAGPromise
 
 
 RUN_LOOP_PROMISES: list[DAGPromise] = []

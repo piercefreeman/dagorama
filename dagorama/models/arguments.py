@@ -1,7 +1,7 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pickle import dumps, loads
 from typing import Any
-from uuid import UUID
+from dagorama.inspection import extract_promise_identifiers
 
 @dataclass
 class DAGArguments:
@@ -19,26 +19,16 @@ class DAGArguments:
     calltime_args: list["DAGPromise" | Any]
     calltime_kwargs: dict[str, "DAGPromise" | Any]
 
-    def to_bytes(self) -> bytes:
-        # TODO: When serializing other DAGPromises, just include the kwargs since we don't need to
+    def to_server_bytes(self) -> bytes:
+        # When serializing other DAGPromises, just include the identifiers since we don't need to
         # cache their parameters as well
-        return dumps(asdict(self))
+        return dumps(
+            DAGArguments(
+                calltime_args=extract_promise_identifiers(self.calltime_args),
+                calltime_kwargs=extract_promise_identifiers(self.calltime_kwargs),
+            )
+        )
 
     @classmethod
-    def from_bytes(cls, b: bytes) -> "DAGArguments":
-        return cls(**loads(b))
-
-
-@dataclass
-class DAGPromise:
-    """
-    A promise of a future DAG result. These promises values are not directly
-    usable locally but can be passed to other DAG functions. The runner will ensure
-    that they are fully realized before the DAG function is called.
-
-    """
-    identifier: UUID
-
-    function_name: str
-
-    arguments: DAGArguments
+    def from_server_bytes(cls, b: bytes) -> "DAGArguments":
+        return loads(b)

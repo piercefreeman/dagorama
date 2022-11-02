@@ -7,7 +7,8 @@ import grpc
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.inspection import find_promises
-from dagorama.models import DAGPromise, DAGArguments
+from dagorama.models.promise import DAGPromise
+from dagorama.models.arguments import DAGArguments
 from dagorama.definition import DAGDefinition, dagorama_context
 
 T = TypeVar('T')
@@ -66,7 +67,7 @@ def dagorama(
                     pb2.NodeConfigurationMessage(
                         identifier=str(promise.identifier),
                         functionName=promise.function_name,
-                        arguments=promise.arguments.to_bytes(),
+                        arguments=promise.arguments.to_server_bytes(),
                         sourceIds=[
                             str(dependency.identifier)
                             for dependency in promise_dependencies

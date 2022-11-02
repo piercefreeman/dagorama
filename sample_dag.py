@@ -1,7 +1,6 @@
 from dagorama.definition import DAGDefinition
-from dagorama.models import DAGPromise
 from dagorama.decorators import dagorama
-from dagorama.runner import execute, resolve_promises
+from dagorama.runner import execute
 
 
 class CustomDag(DAGDefinition):
