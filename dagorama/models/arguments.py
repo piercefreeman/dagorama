@@ -4,6 +4,10 @@ from typing import Any
 
 from dagorama.inspection import extract_promise_identifiers
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from dagorama.models.promise import DAGPromise
+
 
 @dataclass
 class DAGArguments:
@@ -18,8 +22,8 @@ class DAGArguments:
     # Technically these should not be "Any" but should be any object type that
     # can be pickled / json encoded over the wire
     # We should add a validation step to make sure this is true at call time
-    calltime_args: list["DAGPromise" | Any]
-    calltime_kwargs: dict[str, "DAGPromise" | Any]
+    calltime_args: list[DAGPromise | Any]
+    calltime_kwargs: dict[str, DAGPromise | Any]
 
     def to_server_bytes(self) -> bytes:
         # When serializing other DAGPromises, just include the identifiers since we don't need to

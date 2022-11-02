@@ -36,7 +36,6 @@ def dagorama(
                 raise ValueError("@dagorama can only wrap class methods")
 
             dag_definition : DAGDefinition = args[0]
-            args = args[1:]
 
             if dag_definition.instance_id is None:
                 raise ValueError("DAGDefinition must be instantiated with call() before calling a method")
@@ -46,7 +45,10 @@ def dagorama(
             # https://github.com/python/typing/discussions/1191
             greedy_execution = kwargs.pop("greedy_execution", False)
             if greedy_execution:
-                return func(dag_definition, *args, **kwargs)
+                return func(*args, **kwargs)
+
+            # Strip out the class definition when we store the arguments
+            isolated_args = cast(list, args)[1:]
 
             # This function will have a result
             # Queue in the DAG backend
@@ -54,21 +56,28 @@ def dagorama(
                 uuid4(),
                 function_to_name(func),
                 DAGArguments(
-                    args,
+                    isolated_args,
                     kwargs
                 )
             )
 
             # Find the dependencies
-            promise_dependencies = find_promises([args, kwargs])
+            promise_dependencies = find_promises([isolated_args, kwargs])
 
             # Add to the remote runloop
             with dagorama_context() as context:
                 context.CreateNode(
                     pb2.NodeConfigurationMessage(
                         identifier=str(promise.identifier),
-                        functionName=promise.function_name,
-                        arguments=promise.arguments.to_server_bytes(),
+                        functionName=cast(str, promise.function_name),
+                        arguments=(
+                            cast(
+                                # We know this is a valid argument object because we just set it
+                                DAGArguments,
+                                promise.arguments,
+                            )
+                            .to_server_bytes()
+                        ),
                         sourceIds=[
                             str(dependency.identifier)
                             for dependency in promise_dependencies

@@ -18,10 +18,13 @@
 
 (
     mkdir -p dagorama/api \
+    && touch dagorama/api/__init__.py \
     && poetry run python -m grpc_tools.protoc \
         -I./protos \
         --python_out=. \
         --grpc_python_out=. \
+        --mypy_out=. \
+        --mypy_grpc_out=. \
         protos/dagorama/api/api.proto
 
 )

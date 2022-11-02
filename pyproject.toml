@@ -15,6 +15,9 @@ mypy = "^0.982"
 isort = "^5.10.1"
 pytest = "^7.2.0"
 grpcio-tools = "^1.50.0"
+mypy-protobuf = "^3.4.0"
+types-protobuf = "^3.20.4.2"
+grpc-stubs = "^1.24.11"
 
 [build-system]
 requires = ["poetry-core"]

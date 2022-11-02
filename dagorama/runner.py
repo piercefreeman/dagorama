@@ -32,7 +32,7 @@ def execute(
         while True:
             try:
                 next_item = context.GetWork(worker)
-            except grpc._channel._InactiveRpcError as e:
+            except grpc.RpcError as e:
                 if e.details() == "no work available":
                     if not infinite_loop:
                         return

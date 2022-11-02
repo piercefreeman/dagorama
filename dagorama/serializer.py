@@ -4,6 +4,7 @@ from inspect import getmodulename, isclass
 from uuid import UUID
 
 from dagorama.definition import DAGDefinition
+from typing import cast
 
 
 def function_to_name(func):
@@ -40,8 +41,8 @@ def name_to_function(name: str, instance_id: UUID):
         mod = getattr(mod, component)
 
         if isclass(mod) and issubclass(mod, DAGDefinition):
-            mod = mod()
-            mod.instance_id = instance_id
+            mod = mod() # type: ignore
+            mod.instance_id = instance_id  # type: ignore
         elif isclass(mod):
             # Assume we can instantiate classes with no init arguments
             mod = mod()
