@@ -1,4 +1,6 @@
-from dagorama.definition import DAGDefinition, DAGPromise, dagorama
+from dagorama.definition import DAGDefinition
+from dagorama.models import DAGPromise
+from dagorama.decorators import dagorama
 from dagorama.runner import execute, resolve_promises
 
 
@@ -48,9 +50,9 @@ if __name__ == "__main__":
 
     execute()
 
-    unresolved: list[DAGPromise] = []
-    final_result = resolve_promises(dag_result, unresolved)
-    assert not unresolved
-    assert final_result == 9
+    # unresolved: list[DAGPromise] = []
+    # final_result = resolve_promises(dag_result, unresolved)
+    # assert not unresolved
+    # assert final_result == 9
 
     print("DONE")

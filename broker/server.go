@@ -4,6 +4,7 @@ import (
 	"context"
 	pb "dagorama/api"
 	"errors"
+	"log"
 )
 
 type BrokerServer struct {
@@ -13,20 +14,25 @@ type BrokerServer struct {
 }
 
 func NewBrokerServer() *BrokerServer {
-	return &BrokerServer{}
+	return &BrokerServer{
+		broker: NewBroker(),
+	}
 }
 
 func (s *BrokerServer) CreateWorker(ctx context.Context, in *pb.WorkerConfigurationMessage) (*pb.WorkerMessage, error) {
+	log.Printf("Creating worker")
 	worker := s.broker.NewWorker(in.ExcludeQueues, in.IncludeQueues, in.QueueTolerations)
 	return &pb.WorkerMessage{Identifier: worker.identifier}, nil
 }
 
 func (s *BrokerServer) CreateInstance(ctx context.Context, in *pb.InstanceConfigurationMessage) (*pb.InstanceMessage, error) {
+	log.Printf("Creating instance")
 	instance := s.broker.NewInstance(in.Identifier)
 	return &pb.InstanceMessage{Identifier: instance.identifier}, nil
 }
 
-func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationMessage) (*pb.DAGNodeMessage, error) {
+func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationMessage) (*pb.NodeMessage, error) {
+	log.Printf("Creating node")
 	instance := s.broker.GetInstance(in.InstanceId)
 
 	// Map sources to nodes
@@ -45,6 +51,7 @@ func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationM
 }
 
 func (s *BrokerServer) Ping(ctx context.Context, in *pb.WorkerMessage) (*pb.PongMessage, error) {
+	log.Printf("Ping worker")
 	worker := s.broker.GetWorker(in.Identifier)
 	worker.Ping()
 
@@ -53,7 +60,8 @@ func (s *BrokerServer) Ping(ctx context.Context, in *pb.WorkerMessage) (*pb.Pong
 	}, nil
 }
 
-func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.DAGNodeMessage, error) {
+func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.NodeMessage, error) {
+	log.Printf("Get work")
 	worker := s.broker.GetWorker(in.Identifier)
 	node := s.broker.PopNextNode(worker)
 
@@ -64,14 +72,23 @@ func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.D
 	return s.nodeToMessage(node), nil
 }
 
-func (s *BrokerServer) nodeToMessage(node *DAGNode) *pb.DAGNodeMessage {
+func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessage) (*pb.NodeMessage, error) {
+	log.Printf("Submit work")
+	instance := s.broker.GetInstance(in.InstanceId)
+	node := instance.GetNode(in.NodeId)
+	node.ValueDidResolve(in.Result)
+
+	return s.nodeToMessage(node), nil
+}
+
+func (s *BrokerServer) nodeToMessage(node *DAGNode) *pb.NodeMessage {
 	// Convert the layer of sources to messages of their own
 	// Only include one layer further of source messages
-	sourceMessages := make([]*pb.DAGNodeMessage, 0)
+	sourceMessages := make([]*pb.NodeMessage, 0)
 
 	for _, source := range node.sources {
 		// We don't include the source of these messages
-		message := &pb.DAGNodeMessage{
+		message := &pb.NodeMessage{
 			Identifier:    source.identifier,
 			FunctionName:  source.functionName,
 			Arguments:     source.arguments,
@@ -81,12 +98,13 @@ func (s *BrokerServer) nodeToMessage(node *DAGNode) *pb.DAGNodeMessage {
 		sourceMessages = append(sourceMessages, message)
 	}
 
-	return &pb.DAGNodeMessage{
+	return &pb.NodeMessage{
 		Identifier:    node.identifier,
 		FunctionName:  node.functionName,
 		Arguments:     node.arguments,
 		ResolvedValue: node.resolvedValue,
 		Sources:       sourceMessages,
 		Completed:     node.completed,
+		InstanceId:    node.instance.identifier,
 	}
 }

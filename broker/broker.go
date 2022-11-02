@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"math"
 	"sync"
 	"time"
@@ -276,6 +277,7 @@ func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
 	minimumQueueName := ""
 
 	allowedQueues := broker.getAllowedQueues(worker)
+	log.Printf("Allowed queues: %v", allowedQueues)
 
 	for queueName, queue := range broker.taskQueues {
 		// Only support the given queues
@@ -340,6 +342,9 @@ func (broker *Broker) getAllowedQueues(worker *Worker) []string {
 	// list of tolerations
 	allQueues = filterSlice(allQueues, func(queueName string) bool {
 		queue := broker.taskQueues[queueName]
+		if queue.taint == "" {
+			return true
+		}
 		return contains(worker.queueTolerations, queue.taint)
 	})
 

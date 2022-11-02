@@ -1,7 +1,8 @@
 
 from importlib import import_module
 from inspect import getmodulename, isclass
-from typing import Any
+from uuid import UUID
+from dagorama.definition import DAGDefinition
 
 
 def function_to_name(func):
@@ -13,11 +14,11 @@ def function_to_name(func):
 # Global cache of functions, since performing the dependency import and function
 # lookup is non-trivial and occurs frequently within each DAG worker
 # name -> function
-CACHED_FUNCTIONS : dict[str, Any] = {}
+#CACHED_FUNCTIONS : dict[str, Any] = {}
 
-def name_to_function(name: str):
-    if name in CACHED_FUNCTIONS:
-        return CACHED_FUNCTIONS[name]
+def name_to_function(name: str, instance_id: UUID):
+    #if name in CACHED_FUNCTIONS:
+    #    return CACHED_FUNCTIONS[name]
 
     # Can also try to sniff for function names throughout entire global namespace, but this
     # is still conditioned on name conventions
@@ -27,19 +28,22 @@ def name_to_function(name: str):
     mod = import_module(package_name)
 
     for i, component in enumerate(fn_path_components):
-        component_name = f"{package_name}:{'.'.join(fn_path_components[:i+1])}"
-        if component_name in CACHED_FUNCTIONS:
-            mod = CACHED_FUNCTIONS[component_name]
-            continue
+        #component_name = f"{package_name}:{'.'.join(fn_path_components[:i+1])}"
+        #if component_name in CACHED_FUNCTIONS:
+        #    mod = CACHED_FUNCTIONS[component_name]
+        #    continue
 
         if not hasattr(mod, component):
             raise ValueError(f"Unable to resolve dagorama function: {name}")
 
         mod = getattr(mod, component)
 
-        if isclass(mod):
+        if isclass(mod) and issubclass(mod, DAGDefinition):
+            mod = mod()
+            mod.instance_id = instance_id
+        elif isclass(mod):
             # Assume we can instantiate classes with no init arguments
             mod = mod()
-        CACHED_FUNCTIONS[component_name] = mod
+        #CACHED_FUNCTIONS[component_name] = mod
 
     return mod

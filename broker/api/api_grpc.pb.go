@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.21.8
-// source: api/api.proto
+// source: api.proto
 
 package api
 
@@ -24,9 +24,10 @@ const _ = grpc.SupportPackageIsVersion7
 type DagoramaClient interface {
 	CreateWorker(ctx context.Context, in *WorkerConfigurationMessage, opts ...grpc.CallOption) (*WorkerMessage, error)
 	CreateInstance(ctx context.Context, in *InstanceConfigurationMessage, opts ...grpc.CallOption) (*InstanceMessage, error)
-	CreateNode(ctx context.Context, in *NodeConfigurationMessage, opts ...grpc.CallOption) (*DAGNodeMessage, error)
+	CreateNode(ctx context.Context, in *NodeConfigurationMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	Ping(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*PongMessage, error)
-	GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*DAGNodeMessage, error)
+	GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*NodeMessage, error)
+	SubmitWork(ctx context.Context, in *WorkCompleteMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 }
 
 type dagoramaClient struct {
@@ -55,8 +56,8 @@ func (c *dagoramaClient) CreateInstance(ctx context.Context, in *InstanceConfigu
 	return out, nil
 }
 
-func (c *dagoramaClient) CreateNode(ctx context.Context, in *NodeConfigurationMessage, opts ...grpc.CallOption) (*DAGNodeMessage, error) {
-	out := new(DAGNodeMessage)
+func (c *dagoramaClient) CreateNode(ctx context.Context, in *NodeConfigurationMessage, opts ...grpc.CallOption) (*NodeMessage, error) {
+	out := new(NodeMessage)
 	err := c.cc.Invoke(ctx, "/main.Dagorama/CreateNode", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -73,9 +74,18 @@ func (c *dagoramaClient) Ping(ctx context.Context, in *WorkerMessage, opts ...gr
 	return out, nil
 }
 
-func (c *dagoramaClient) GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*DAGNodeMessage, error) {
-	out := new(DAGNodeMessage)
+func (c *dagoramaClient) GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*NodeMessage, error) {
+	out := new(NodeMessage)
 	err := c.cc.Invoke(ctx, "/main.Dagorama/GetWork", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dagoramaClient) SubmitWork(ctx context.Context, in *WorkCompleteMessage, opts ...grpc.CallOption) (*NodeMessage, error) {
+	out := new(NodeMessage)
+	err := c.cc.Invoke(ctx, "/main.Dagorama/SubmitWork", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,9 +98,10 @@ func (c *dagoramaClient) GetWork(ctx context.Context, in *WorkerMessage, opts ..
 type DagoramaServer interface {
 	CreateWorker(context.Context, *WorkerConfigurationMessage) (*WorkerMessage, error)
 	CreateInstance(context.Context, *InstanceConfigurationMessage) (*InstanceMessage, error)
-	CreateNode(context.Context, *NodeConfigurationMessage) (*DAGNodeMessage, error)
+	CreateNode(context.Context, *NodeConfigurationMessage) (*NodeMessage, error)
 	Ping(context.Context, *WorkerMessage) (*PongMessage, error)
-	GetWork(context.Context, *WorkerMessage) (*DAGNodeMessage, error)
+	GetWork(context.Context, *WorkerMessage) (*NodeMessage, error)
+	SubmitWork(context.Context, *WorkCompleteMessage) (*NodeMessage, error)
 	mustEmbedUnimplementedDagoramaServer()
 }
 
@@ -104,14 +115,17 @@ func (UnimplementedDagoramaServer) CreateWorker(context.Context, *WorkerConfigur
 func (UnimplementedDagoramaServer) CreateInstance(context.Context, *InstanceConfigurationMessage) (*InstanceMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateInstance not implemented")
 }
-func (UnimplementedDagoramaServer) CreateNode(context.Context, *NodeConfigurationMessage) (*DAGNodeMessage, error) {
+func (UnimplementedDagoramaServer) CreateNode(context.Context, *NodeConfigurationMessage) (*NodeMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNode not implemented")
 }
 func (UnimplementedDagoramaServer) Ping(context.Context, *WorkerMessage) (*PongMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedDagoramaServer) GetWork(context.Context, *WorkerMessage) (*DAGNodeMessage, error) {
+func (UnimplementedDagoramaServer) GetWork(context.Context, *WorkerMessage) (*NodeMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetWork not implemented")
+}
+func (UnimplementedDagoramaServer) SubmitWork(context.Context, *WorkCompleteMessage) (*NodeMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitWork not implemented")
 }
 func (UnimplementedDagoramaServer) mustEmbedUnimplementedDagoramaServer() {}
 
@@ -216,6 +230,24 @@ func _Dagorama_GetWork_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Dagorama_SubmitWork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkCompleteMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagoramaServer).SubmitWork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Dagorama/SubmitWork",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagoramaServer).SubmitWork(ctx, req.(*WorkCompleteMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Dagorama_ServiceDesc is the grpc.ServiceDesc for Dagorama service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -243,7 +275,11 @@ var Dagorama_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetWork",
 			Handler:    _Dagorama_GetWork_Handler,
 		},
+		{
+			MethodName: "SubmitWork",
+			Handler:    _Dagorama_SubmitWork_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/api.proto",
+	Metadata: "api.proto",
 }

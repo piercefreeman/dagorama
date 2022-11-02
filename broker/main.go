@@ -12,7 +12,7 @@ import (
 
 func main() {
 	var (
-		port = flag.Int("port", 6021, "The port to listen on")
+		port = flag.Int("port", 50051, "The port to listen on")
 	)
 
 	flag.Parse()
