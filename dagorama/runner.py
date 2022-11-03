@@ -52,7 +52,12 @@ def execute(
             )
         )
 
-        Thread(target=schedule_ping, args=(context, worker)).start()
+        Thread(
+            target=schedule_ping,
+            args=(context, worker),
+            # Stop the thread when the rest of the process finishes
+            daemon=True,
+        ).start()
 
         while True:
             try:

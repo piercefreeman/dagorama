@@ -17,7 +17,7 @@ P = ParamSpec('P')
 
 def dagorama(
     queue_name: str | None = None,
-    taint_name: list[str] = None
+    taint_name: str | None = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     The actual return type of functions wrapped with @dagorama() will be a DAGPromise. This is not what we want during
