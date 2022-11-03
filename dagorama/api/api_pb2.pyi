@@ -92,12 +92,16 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
     IDENTIFIER_FIELD_NUMBER: builtins.int
     FUNCTIONNAME_FIELD_NUMBER: builtins.int
     FUNCTIONHASH_FIELD_NUMBER: builtins.int
+    QUEUENAME_FIELD_NUMBER: builtins.int
+    TAINTNAME_FIELD_NUMBER: builtins.int
     ARGUMENTS_FIELD_NUMBER: builtins.int
     SOURCEIDS_FIELD_NUMBER: builtins.int
     INSTANCEID_FIELD_NUMBER: builtins.int
     identifier: builtins.str
     functionName: builtins.str
     functionHash: builtins.str
+    queueName: builtins.str
+    taintName: builtins.str
     arguments: builtins.bytes
     @property
     def sourceIds(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
@@ -108,11 +112,13 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
         identifier: builtins.str = ...,
         functionName: builtins.str = ...,
         functionHash: builtins.str = ...,
+        queueName: builtins.str = ...,
+        taintName: builtins.str = ...,
         arguments: builtins.bytes = ...,
         sourceIds: collections.abc.Iterable[builtins.str] | None = ...,
         instanceId: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "sourceIds", b"sourceIds"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "sourceIds", b"sourceIds", "taintName", b"taintName"]) -> None: ...
 
 global___NodeConfigurationMessage = NodeConfigurationMessage
 
@@ -123,6 +129,8 @@ class NodeMessage(google.protobuf.message.Message):
     IDENTIFIER_FIELD_NUMBER: builtins.int
     FUNCTIONNAME_FIELD_NUMBER: builtins.int
     FUNCTIONHASH_FIELD_NUMBER: builtins.int
+    QUEUENAME_FIELD_NUMBER: builtins.int
+    TAINTNAME_FIELD_NUMBER: builtins.int
     ARGUMENTS_FIELD_NUMBER: builtins.int
     RESOLVEDVALUE_FIELD_NUMBER: builtins.int
     SOURCES_FIELD_NUMBER: builtins.int
@@ -131,6 +139,9 @@ class NodeMessage(google.protobuf.message.Message):
     identifier: builtins.str
     functionName: builtins.str
     functionHash: builtins.str
+    queueName: builtins.str
+    """Queue parameterization"""
+    taintName: builtins.str
     arguments: builtins.bytes
     resolvedValue: builtins.bytes
     @property
@@ -143,13 +154,15 @@ class NodeMessage(google.protobuf.message.Message):
         identifier: builtins.str = ...,
         functionName: builtins.str = ...,
         functionHash: builtins.str = ...,
+        queueName: builtins.str = ...,
+        taintName: builtins.str = ...,
         arguments: builtins.bytes = ...,
         resolvedValue: builtins.bytes = ...,
         sources: collections.abc.Iterable[global___NodeMessage] | None = ...,
         completed: builtins.bool = ...,
         instanceId: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "resolvedValue", b"resolvedValue", "sources", b"sources"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "resolvedValue", b"resolvedValue", "sources", b"sources", "taintName", b"taintName"]) -> None: ...
 
 global___NodeMessage = NodeMessage
 

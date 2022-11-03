@@ -40,12 +40,14 @@ message NodeConfigurationMessage {
   string identifier = 1;
   string functionName = 2;
   string functionHash = 3;
+  string queueName = 4;
+  string taintName = 5;
 
-  bytes arguments = 4;
+  bytes arguments = 6;
 
-  repeated string sourceIds = 5;
+  repeated string sourceIds = 7;
 
-  string instanceId = 6;
+  string instanceId = 8;
 }
 
 message NodeMessage {
@@ -53,14 +55,18 @@ message NodeMessage {
   string functionName = 2;
   string functionHash = 3;
 
-  bytes arguments = 4;
-  bytes resolvedValue = 5;
+  // Queue parameterization
+  string queueName = 4;
+  string taintName = 5;
 
-  repeated NodeMessage sources = 6;
+  bytes arguments = 6;
+  bytes resolvedValue = 7;
 
-  bool completed = 7;
+  repeated NodeMessage sources = 8;
 
-  string instanceId = 8;
+  bool completed = 9;
+
+  string instanceId = 10;
 }
 
 message PongMessage {

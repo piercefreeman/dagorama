@@ -70,7 +70,7 @@ def resolve(dag: DAGDefinition, promise: DAGPromise):
                 )
             )
 
-            if node.resolvedValue is None:
+            if not len(node.resolvedValue):
                 return None
 
             resolved = loads(node.resolvedValue)
