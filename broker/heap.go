@@ -11,7 +11,7 @@ type QueuedJob struct {
 	// Lower denotes highest priority, since we increment by the creation order
 	// of the parent DAGs. This is opposite of traditional p-queues where higher
 	// ranked items are popped first.
-	priority int
+	priority int64
 
 	// The index of the item in the heap, used by the backing heap implementation.
 	index int
@@ -42,7 +42,7 @@ func NewHeapQueue() *HeapQueue {
 	return newHeap
 }
 
-func (queue *HeapQueue) PushItem(node *DAGNode, priority int) {
+func (queue *HeapQueue) PushItem(node *DAGNode, priority int64) {
 	// Nodes should only be added via the PushItem method
 	item := &QueuedJob{
 		node:     node,
@@ -55,7 +55,7 @@ func (queue *HeapQueue) PushItem(node *DAGNode, priority int) {
 	heap.Push(&queue.heap, item)
 }
 
-func (queue *HeapQueue) UpdateItem(item *QueuedJob, node *DAGNode, priority int) {
+func (queue *HeapQueue) UpdateItem(item *QueuedJob, node *DAGNode, priority int64) {
 	// Nodes should only be modified via the update method
 	item.node = node
 	item.priority = priority

@@ -97,7 +97,10 @@ def execute(
             if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
                 raise CodeMismatchException()
 
-            result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+            try:
+                result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+            except Exception as e:
+                pass
             print("RESULT", result)
 
             context.SubmitWork(
