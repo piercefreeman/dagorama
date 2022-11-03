@@ -70,8 +70,9 @@ message PongMessage {
 message WorkCompleteMessage {
   string instanceId = 1;
   string nodeId = 2;
+  string workerId = 3;
 
-  bytes result = 3;
+  bytes result = 4;
 }
 
 message NodeRetrieveMessage {

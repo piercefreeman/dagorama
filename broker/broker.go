@@ -24,10 +24,17 @@ type Worker struct {
 	// When this list is empty, we will re-compute the allowed queues given
 	// the above defined constraints.
 	allowedQueues []string
+
+	// We only expect one task to be executing at a time but we store nodes as a
+	// list to allow for future expansion.
+	claimedWork []*DAGNode
+
+	// True if a worker has been garbage collected by the server
+	invalidated bool
 }
 
 func (worker *Worker) Ping() {
-	worker.lastPing = time.Now().UnixNano() / int64(time.Millisecond)
+	worker.lastPing = time.Now().Unix()
 }
 
 type DAGNode struct {
@@ -186,16 +193,21 @@ type Broker struct {
 
 	workerLock sync.RWMutex
 	workers    map[string]*Worker
+
+	// Require a ping within this interval or a worker will be considered unhealthy
+	// and removed from the pool, seconds
+	requiredPingInterval int
 }
 
 func NewBroker() *Broker {
 	return &Broker{
-		taskQueuesLock: sync.Mutex{},
-		taskQueues:     make(map[string]*HeapQueue),
-		instancesLock:  sync.RWMutex{},
-		instances:      make(map[string]*DAGInstance),
-		workerLock:     sync.RWMutex{},
-		workers:        make(map[string]*Worker),
+		taskQueuesLock:       sync.Mutex{},
+		taskQueues:           make(map[string]*HeapQueue),
+		instancesLock:        sync.RWMutex{},
+		instances:            make(map[string]*DAGInstance),
+		workerLock:           sync.RWMutex{},
+		workers:              make(map[string]*Worker),
+		requiredPingInterval: 60,
 	}
 }
 
@@ -209,6 +221,8 @@ func (broker *Broker) NewWorker(
 		excludeQueues:    excludeQueues,
 		includeQueues:    includeQueues,
 		queueTolerations: queueTolerations,
+		claimedWork:      make([]*DAGNode, 0),
+		invalidated:      false,
 	}
 	worker.Ping()
 
@@ -272,8 +286,6 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
-	// Re-calculate the cached values if we have them
-
 	// Find the queue with the minimum priority
 	// Ties in priority from different queues will choose an item arbitrarily
 	broker.taskQueuesLock.Lock()
@@ -312,8 +324,37 @@ func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
 	// Assign to the given worker
 	node.dequeueTimestamp = time.Now().Unix()
 	node.dequeueWorker = worker
+	worker.claimedWork = append(worker.claimedWork, node)
 
 	return node
+}
+
+func (broker *Broker) GarbageCollectWorkers() {
+	/*
+	 * Periodically garbage collect workers that have not pinged in a while
+	 */
+	for true {
+		broker.GarbageCollectWorkersExecute()
+		time.Sleep(time.Duration(broker.requiredPingInterval) * time.Second)
+	}
+}
+
+func (broker *Broker) GarbageCollectWorkersExecute() {
+	for workerID, worker := range broker.workers {
+		if worker.lastPing < time.Now().Unix()-int64(broker.requiredPingInterval) {
+			log.Printf("Garbage collecting worker %s", workerID)
+
+			// Free the currently processing nodes back into the pool
+			for _, node := range worker.claimedWork {
+				node.dequeueTimestamp = 0
+				node.dequeueWorker = nil
+				broker.EnqueueNode(node)
+			}
+
+			worker.claimedWork = make([]*DAGNode, 0)
+			worker.invalidated = true
+		}
+	}
 }
 
 func (broker *Broker) getAllowedQueues(worker *Worker) []string {

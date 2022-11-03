@@ -3,6 +3,7 @@ package main
 import (
 	"sort"
 	"testing"
+	"time"
 )
 
 func TestBroker(t *testing.T) {
@@ -126,5 +127,23 @@ func TestAllowedQueues(t *testing.T) {
 				t.Fatalf("Expected queue index %d: %s, got %s", i, tt.expectedQueues[i], allowedQueues[i])
 			}
 		}
+	}
+}
+
+func TestGarbageCollectWorkers(t *testing.T) {
+	broker := NewBroker()
+	worker := broker.NewWorker([]string{}, []string{}, []string{})
+	worker.lastPing = time.Now().Add(-1 * time.Hour).Unix()
+
+	worker2 := broker.NewWorker([]string{}, []string{}, []string{})
+	worker2.lastPing = time.Now().Add(-30 * time.Second).Unix()
+
+	broker.GarbageCollectWorkersExecute()
+
+	if !worker.invalidated {
+		t.Fatalf("Expected worker to be garbage collected")
+	}
+	if worker2.invalidated {
+		t.Fatalf("Expected worker2 to not be garbage collected")
 	}
 }

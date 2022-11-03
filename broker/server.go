@@ -14,8 +14,14 @@ type BrokerServer struct {
 }
 
 func NewBrokerServer() *BrokerServer {
+	broker := NewBroker()
+
+	// GC should run in the background periodically. The function will own
+	// its own wakeup logic and will run forever.
+	go broker.GarbageCollectWorkers()
+
 	return &BrokerServer{
-		broker: NewBroker(),
+		broker: broker,
 	}
 }
 
@@ -72,6 +78,11 @@ func (s *BrokerServer) GetNode(ctx context.Context, in *pb.NodeRetrieveMessage) 
 func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.NodeMessage, error) {
 	log.Printf("Get work")
 	worker := s.broker.GetWorker(in.Identifier)
+
+	if worker.invalidated {
+		return nil, errors.New("worker invalidated")
+	}
+
 	node := s.broker.PopNextNode(worker)
 
 	if node == nil {
@@ -83,6 +94,12 @@ func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.N
 
 func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessage) (*pb.NodeMessage, error) {
 	log.Printf("Submit work")
+	worker := s.broker.GetWorker(in.WorkerId)
+
+	if worker.invalidated {
+		return nil, errors.New("worker invalidated")
+	}
+
 	instance := s.broker.GetInstance(in.InstanceId)
 	node := instance.GetNode(in.NodeId)
 	node.ValueDidResolve(in.Result)
