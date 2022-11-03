@@ -174,18 +174,21 @@ class WorkCompleteMessage(google.protobuf.message.Message):
 
     INSTANCEID_FIELD_NUMBER: builtins.int
     NODEID_FIELD_NUMBER: builtins.int
+    WORKERID_FIELD_NUMBER: builtins.int
     RESULT_FIELD_NUMBER: builtins.int
     instanceId: builtins.str
     nodeId: builtins.str
+    workerId: builtins.str
     result: builtins.bytes
     def __init__(
         self,
         *,
         instanceId: builtins.str = ...,
         nodeId: builtins.str = ...,
+        workerId: builtins.str = ...,
         result: builtins.bytes = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "result", b"result"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "result", b"result", "workerId", b"workerId"]) -> None: ...
 
 global___WorkCompleteMessage = WorkCompleteMessage
 

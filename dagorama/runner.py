@@ -4,6 +4,7 @@ from contextlib import contextmanager
 
 import grpc
 
+import dagorama.api.api_pb2_grpc as pb2_grpc
 import dagorama.api.api_pb2 as pb2
 from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
@@ -11,6 +12,7 @@ from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
 from multiprocessing import Process
 from dagorama.code_signature import calculate_function_hash
+from threading import Thread
 
 
 class CodeMismatchException(Exception):
@@ -20,6 +22,19 @@ class CodeMismatchException(Exception):
 
     """
     pass
+
+
+def schedule_ping(
+    context: pb2_grpc.DagoramaStub,
+    worker: pb2.WorkerMessage,
+    interval: int = 30,
+):
+    """
+    Send a ping to the server to keep the connection alive.
+    """
+    while True:
+        context.Ping(worker)
+        sleep(interval)
 
 
 def execute(
@@ -36,6 +51,8 @@ def execute(
                 queueTolerations=queue_tolerations or [],
             )
         )
+
+        Thread(target=schedule_ping, args=(context, worker)).start()
 
         while True:
             try:
@@ -82,6 +99,7 @@ def execute(
                 pb2.WorkCompleteMessage(
                     instanceId=next_item.instanceId,
                     nodeId=next_item.identifier,
+                    workerId=worker.identifier,
                     result=dumps(result),
                 )
             )
