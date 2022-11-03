@@ -16,6 +16,7 @@ P = ParamSpec('P')
 
 
 def dagorama(
+    queue_name: str | None = None,
     taint_name: list[str] = None
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
@@ -70,6 +71,7 @@ def dagorama(
                         identifier=str(promise.identifier),
                         functionName=cast(str, promise.function_name),
                         functionHash=calculate_function_hash(func),
+                        queueName=queue_name or cast(str, promise.function_name),
                         arguments=(
                             cast(
                                 # We know this is a valid argument object because we just set it

@@ -40,6 +40,7 @@ func (worker *Worker) Ping() {
 type DAGNode struct {
 	identifier   string
 	functionName string
+	queueName    string
 
 	// Hash of function code logic, used by workers to determine if their local
 	// version of the code is the same as the version that was queued originally
@@ -131,6 +132,7 @@ func (instance *DAGInstance) NewNode(
 	identifier string,
 	functionName string,
 	functionHash string,
+	queueName string,
 	arguments []byte,
 	sources []*DAGNode,
 ) *DAGNode {
@@ -138,6 +140,7 @@ func (instance *DAGInstance) NewNode(
 		identifier:   identifier,
 		functionName: functionName,
 		functionHash: functionHash,
+		queueName:    queueName,
 		arguments:    arguments,
 		sources:      sources,
 		destinations: make([]*DAGNode, 0),
@@ -271,8 +274,8 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	defer broker.taskQueuesLock.Unlock()
 
 	// Create the queue if it doesn't exist
-	if _, ok := broker.taskQueues[node.functionName]; !ok {
-		broker.taskQueues[node.functionName] = NewHeapQueue()
+	if _, ok := broker.taskQueues[node.queueName]; !ok {
+		broker.taskQueues[node.queueName] = NewHeapQueue()
 
 		// Clear the cache of allowed worker queues since we have just added
 		// a new one that will invalidate the cache
@@ -282,7 +285,7 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	}
 
 	// Add to queue
-	broker.taskQueues[node.functionName].PushItem(node, node.instance.order)
+	broker.taskQueues[node.queueName].PushItem(node, node.instance.order)
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
