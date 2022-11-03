@@ -40,7 +40,9 @@ func (worker *Worker) Ping() {
 type DAGNode struct {
 	identifier   string
 	functionName string
-	queueName    string
+
+	queueName string
+	taintName string
 
 	// Hash of function code logic, used by workers to determine if their local
 	// version of the code is the same as the version that was queued originally
@@ -133,6 +135,7 @@ func (instance *DAGInstance) NewNode(
 	functionName string,
 	functionHash string,
 	queueName string,
+	taintName string,
 	arguments []byte,
 	sources []*DAGNode,
 ) *DAGNode {
@@ -141,6 +144,7 @@ func (instance *DAGInstance) NewNode(
 		functionName: functionName,
 		functionHash: functionHash,
 		queueName:    queueName,
+		taintName:    taintName,
 		arguments:    arguments,
 		sources:      sources,
 		destinations: make([]*DAGNode, 0),
@@ -275,7 +279,9 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 
 	// Create the queue if it doesn't exist
 	if _, ok := broker.taskQueues[node.queueName]; !ok {
-		broker.taskQueues[node.queueName] = NewHeapQueue()
+		newQueue := NewHeapQueue()
+		newQueue.taint = node.taintName
+		broker.taskQueues[node.queueName] = newQueue
 
 		// Clear the cache of allowed worker queues since we have just added
 		// a new one that will invalidate the cache

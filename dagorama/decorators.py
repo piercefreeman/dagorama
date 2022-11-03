@@ -71,6 +71,7 @@ def dagorama(
                         identifier=str(promise.identifier),
                         functionName=cast(str, promise.function_name),
                         functionHash=calculate_function_hash(func),
+                        taintName=taint_name or "",
                         queueName=queue_name or cast(str, promise.function_name),
                         arguments=(
                             cast(
