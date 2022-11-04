@@ -10,6 +10,7 @@ from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
 from dagorama.serializer import function_to_name
 from dagorama.code_signature import calculate_function_hash
+from dagorama.retry import RetryConfiguration
 
 T = TypeVar('T')
 P = ParamSpec('P')
@@ -17,7 +18,8 @@ P = ParamSpec('P')
 
 def dagorama(
     queue_name: str | None = None,
-    taint_name: str | None = None
+    taint_name: str | None = None,
+    retry: RetryConfiguration | None = None,
 ) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """
     The actual return type of functions wrapped with @dagorama() will be a DAGPromise. This is not what we want during
@@ -86,6 +88,7 @@ def dagorama(
                             for dependency in promise_dependencies
                         ],
                         instanceId=str(dag_definition.instance_id),
+                        retry=retry.as_message() if retry is not None else None,
                     )
                 )
 

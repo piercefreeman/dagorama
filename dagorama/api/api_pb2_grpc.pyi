@@ -36,6 +36,10 @@ class DagoramaStub:
         dagorama.api.api_pb2.WorkCompleteMessage,
         dagorama.api.api_pb2.NodeMessage,
     ]
+    SubmitFailure: grpc.UnaryUnaryMultiCallable[
+        dagorama.api.api_pb2.WorkFailedMessage,
+        dagorama.api.api_pb2.NodeMessage,
+    ]
 
 class DagoramaServicer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
@@ -78,6 +82,12 @@ class DagoramaServicer(metaclass=abc.ABCMeta):
     def SubmitWork(
         self,
         request: dagorama.api.api_pb2.WorkCompleteMessage,
+        context: grpc.ServicerContext,
+    ) -> dagorama.api.api_pb2.NodeMessage: ...
+    @abc.abstractmethod
+    def SubmitFailure(
+        self,
+        request: dagorama.api.api_pb2.WorkFailedMessage,
         context: grpc.ServicerContext,
     ) -> dagorama.api.api_pb2.NodeMessage: ...
 

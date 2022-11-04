@@ -11,8 +11,8 @@ func TestBroker(t *testing.T) {
 	instance := broker.NewInstance("1")
 
 	// Entrypoint and one function
-	entrypoint := instance.NewNode("A", "Entrypoint", "hash(1)", "queue_1", "", []byte{}, []*DAGNode{})
-	instance.NewNode("B", "Secondary", "hash(2)", "queue_2", "", []byte{}, []*DAGNode{entrypoint})
+	entrypoint := instance.NewNode("A", "Entrypoint", "hash(1)", "queue_1", "", []byte{}, []*DAGNode{}, nil)
+	instance.NewNode("B", "Secondary", "hash(2)", "queue_2", "", []byte{}, []*DAGNode{entrypoint}, nil)
 
 	worker := &Worker{
 		// All queues
@@ -36,7 +36,7 @@ func TestBroker(t *testing.T) {
 		t.Fatalf("Expected no jobs are ready yet.")
 	}
 
-	nextNode.ValueDidResolve([]byte{})
+	nextNode.ExecutionDidResolve([]byte{})
 
 	nextNode = broker.PopNextNode(worker)
 
@@ -45,7 +45,7 @@ func TestBroker(t *testing.T) {
 	}
 
 	// Simulate the job completing
-	nextNode.ValueDidResolve([]byte{})
+	nextNode.ExecutionDidResolve([]byte{})
 }
 
 func TestAllowedQueues(t *testing.T) {
@@ -145,5 +145,46 @@ func TestGarbageCollectWorkers(t *testing.T) {
 	}
 	if worker2.invalidated {
 		t.Fatalf("Expected worker2 to not be garbage collected")
+	}
+}
+
+func TestQueueFutureScheduledExecute(t *testing.T) {
+	broker := NewBroker()
+	worker := broker.NewWorker([]string{}, []string{}, []string{})
+
+	// Create a node that is scheduled to run in the future
+	instance := broker.NewInstance("1")
+
+	// We should try again almost instantly (in 1 second)
+	retryPolicy := NewStaticRetryPolicy(1, 1)
+	instance.NewNode("A", "Entrypoint", "hash(1)", "queue_1", "", []byte{}, []*DAGNode{}, retryPolicy)
+
+	// Dequeue from the main queue, should be the only one in the queue
+	node := broker.PopNextNode(worker)
+
+	// Indicate that the node has failed for some reason so it should be placed into the
+	node.ExecutionDidFail("")
+
+	if broker.futureScheduledNodes.Length() != 1 {
+		t.Fatalf("Expected 1 future scheduled node, got %d", broker.futureScheduledNodes.Length())
+	}
+
+	if broker.taskQueues["queue_1"].Length() != 0 {
+		t.Fatalf("Expected no length in queue_1, got %d", broker.taskQueues["queue_1"].Length())
+	}
+
+	// Wait for enough time to let our backoff expire
+	time.Sleep(2 * time.Second)
+
+	// Run the garbage collection, which should move the node to the main queue
+	broker.QueueFutureScheduledExecute()
+
+	// At this point it should be back in the main queue
+	if broker.futureScheduledNodes.Length() != 0 {
+		t.Fatalf("Expected no future scheduled nodes, got %d", broker.futureScheduledNodes.Length())
+	}
+
+	if broker.taskQueues["queue_1"].Length() != 1 {
+		t.Fatalf("Expected node to be back in the queue, got %d", broker.taskQueues["queue_1"].Length())
 	}
 }

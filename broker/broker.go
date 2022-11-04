@@ -27,7 +27,8 @@ type Worker struct {
 
 	// We only expect one task to be executing at a time but we store nodes as a
 	// list to allow for future expansion.
-	claimedWork []*DAGNode
+	claimedWork     []*DAGNode
+	claimedWorkLock sync.RWMutex
 
 	// True if a worker has been garbage collected by the server
 	invalidated bool
@@ -35,6 +36,13 @@ type Worker struct {
 
 func (worker *Worker) Ping() {
 	worker.lastPing = time.Now().Unix()
+}
+
+type DAGFailure struct {
+	/*
+	 * Record client-side errors and exceptions
+	 */
+	traceback string
 }
 
 type DAGNode struct {
@@ -72,9 +80,14 @@ type DAGNode struct {
 	// Worker that is currently executing this node
 	dequeueTimestamp int64
 	dequeueWorker    *Worker
+
+	// Store failures on past invocations of this node
+	retryPolicy  *RetryPolicy
+	failures     []*DAGFailure
+	failuresLock sync.RWMutex
 }
 
-func (node *DAGNode) ValueDidResolve(value []byte) {
+func (node *DAGNode) ExecutionDidResolve(value []byte) {
 	/*
 	 * Called by clients when we have finalized a value for this DAG Node
 	 */
@@ -82,15 +95,51 @@ func (node *DAGNode) ValueDidResolve(value []byte) {
 	node.resolvedValue = value
 	node.completed = true
 
-	// Release the worker lock
-	node.dequeueTimestamp = 0
-	node.dequeueWorker = nil
+	// Release the worker lock from the element
+	node.ReleaseWorkerLock()
 
 	// Dequeue destinations
 	// If all are valid, enqueue into the actual DAG queue
 	for _, destination := range node.destinations {
 		destination.DependencyDidResolve()
 	}
+}
+
+func (node *DAGNode) ExecutionDidFail(traceback string) {
+	failure := DAGFailure{
+		traceback: traceback,
+	}
+
+	// Release the worker lock
+	node.ReleaseWorkerLock()
+
+	// Record the failure as part of this node
+	node.failuresLock.Lock()
+	defer node.failuresLock.Unlock()
+	node.failures = append(node.failures, &failure)
+
+	// Requeue back into the DAG with the node's backoff policy
+	node.instance.broker.BackoffNode(node)
+}
+
+func (node *DAGNode) ReleaseWorkerLock() {
+	/*
+	 * Releases the worker's sole control over this element
+	 * but won't yet requeue the element
+	 */
+	worker := node.dequeueWorker
+	if worker != nil {
+		worker.claimedWorkLock.Lock()
+		defer worker.claimedWorkLock.Unlock()
+
+		worker.claimedWork = filterSlice(worker.claimedWork, func(compareNode *DAGNode) bool {
+			return compareNode.identifier != node.identifier
+		})
+	}
+
+	// Release the worker lock from the note
+	node.dequeueTimestamp = 0
+	node.dequeueWorker = nil
 }
 
 func (node *DAGNode) DependencyDidResolve() {
@@ -138,6 +187,7 @@ func (instance *DAGInstance) NewNode(
 	taintName string,
 	arguments []byte,
 	sources []*DAGNode,
+	retryPolicy *RetryPolicy,
 ) *DAGNode {
 	node := &DAGNode{
 		identifier:   identifier,
@@ -150,6 +200,9 @@ func (instance *DAGInstance) NewNode(
 		destinations: make([]*DAGNode, 0),
 		completed:    false,
 		instance:     instance,
+		failures:     make([]*DAGFailure, 0),
+		failuresLock: sync.RWMutex{},
+		retryPolicy:  retryPolicy,
 	}
 
 	instance.nodeLock.Lock()
@@ -193,6 +246,12 @@ type Broker struct {
 	taskQueuesLock sync.Mutex
 	taskQueues     map[string]*HeapQueue
 
+	// Unscheduled DAGs aren't yet ready for queuing because we are still waiting
+	// for their backoff intervals. Unlike in the regular task queues these objects
+	// are parameterized by their timestamp rather than
+	futureScheduledNodesLock sync.RWMutex
+	futureScheduledNodes     *HeapQueue
+
 	// Separate instantiations of each DAG
 	// Mapping of ID -> DAGInstance
 	instancesLock sync.RWMutex
@@ -208,13 +267,15 @@ type Broker struct {
 
 func NewBroker() *Broker {
 	return &Broker{
-		taskQueuesLock:       sync.Mutex{},
-		taskQueues:           make(map[string]*HeapQueue),
-		instancesLock:        sync.RWMutex{},
-		instances:            make(map[string]*DAGInstance),
-		workerLock:           sync.RWMutex{},
-		workers:              make(map[string]*Worker),
-		requiredPingInterval: 60,
+		taskQueuesLock:           sync.Mutex{},
+		taskQueues:               make(map[string]*HeapQueue),
+		futureScheduledNodesLock: sync.RWMutex{},
+		futureScheduledNodes:     NewHeapQueue(),
+		instancesLock:            sync.RWMutex{},
+		instances:                make(map[string]*DAGInstance),
+		workerLock:               sync.RWMutex{},
+		workers:                  make(map[string]*Worker),
+		requiredPingInterval:     60,
 	}
 }
 
@@ -229,6 +290,7 @@ func (broker *Broker) NewWorker(
 		includeQueues:    includeQueues,
 		queueTolerations: queueTolerations,
 		claimedWork:      make([]*DAGNode, 0),
+		claimedWorkLock:  sync.RWMutex{},
 		invalidated:      false,
 	}
 	worker.Ping()
@@ -274,6 +336,7 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	/*
 	 * Enqueue a DAG node into the appropriate queue
 	 */
+	log.Printf("Enqueueing node %s", node.identifier)
 	broker.taskQueuesLock.Lock()
 	defer broker.taskQueuesLock.Unlock()
 
@@ -291,7 +354,27 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	}
 
 	// Add to queue
-	broker.taskQueues[node.queueName].PushItem(node, node.instance.order)
+	broker.taskQueues[node.queueName].PushItem(node, int64(node.instance.order))
+}
+
+func (broker *Broker) BackoffNode(node *DAGNode) {
+	/*
+	 * The given node has failed so we need to determine when we want to retry
+	 */
+	if node.retryPolicy == nil {
+		// No policy to retry, can skip
+		return
+	}
+
+	broker.futureScheduledNodesLock.Lock()
+	defer broker.futureScheduledNodesLock.Unlock()
+
+	backoffInterval := node.retryPolicy.getWaitIntervalMilliseconds()
+	if backoffInterval == -1 {
+		// Have exhausted retry attempts, shouldn't queue back
+		return
+	}
+	broker.futureScheduledNodes.PushItem(node, time.Now().UnixMilli()+int64(backoffInterval))
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
@@ -300,7 +383,7 @@ func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
 	broker.taskQueuesLock.Lock()
 	defer broker.taskQueuesLock.Unlock()
 
-	minimumPriority := math.MaxInt64
+	minimumPriority := int64(math.MaxInt64)
 	minimumQueueName := ""
 
 	allowedQueues := broker.getAllowedQueues(worker)
@@ -363,6 +446,45 @@ func (broker *Broker) GarbageCollectWorkersExecute() {
 			worker.claimedWork = make([]*DAGNode, 0)
 			worker.invalidated = true
 		}
+	}
+}
+
+func (broker *Broker) QueueFutureScheduled() {
+	/*
+	 * Determines if any of the future scheduled nodes should be queued as being ready
+	 * for work.
+	 */
+	for true {
+		broker.QueueFutureScheduledExecute()
+		time.Sleep(time.Duration(10) * time.Second)
+	}
+}
+
+func (broker *Broker) QueueFutureScheduledExecute() {
+	if broker.futureScheduledNodes.Length() == 0 {
+		return
+	}
+
+	// The first element in the queue should always be the one that
+	// is first in line to re-queue. The second that we hit an object that
+	// isn't ready yet, we know all objects after it will be too.
+	broker.futureScheduledNodesLock.Lock()
+	defer broker.futureScheduledNodesLock.Unlock()
+
+	for true {
+		nextNode := broker.futureScheduledNodes.PeekItem()
+		if nextNode == nil {
+			break
+		}
+
+		if nextNode.priority > time.Now().UnixMilli() {
+			// Not ready yet
+			break
+		}
+
+		// Ready to re-queue
+		node := broker.futureScheduledNodes.PopItem().node
+		broker.EnqueueNode(node)
 	}
 }
 

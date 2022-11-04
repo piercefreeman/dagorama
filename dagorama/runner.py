@@ -13,6 +13,7 @@ from dagorama.serializer import name_to_function
 from multiprocessing import Process
 from dagorama.code_signature import calculate_function_hash
 from threading import Thread
+from traceback import format_exc
 
 
 class CodeMismatchException(Exception):
@@ -97,7 +98,19 @@ def execute(
             if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
                 raise CodeMismatchException()
 
-            result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+            try:
+                result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+            except Exception as e:
+                traceback = format_exc()
+                context.SubmitFailure(
+                    pb2.WorkFailedMessage(
+                        instanceId=next_item.instanceId,
+                        nodeId=next_item.identifier,
+                        workerId=worker.identifier,
+                        traceback=traceback
+                    )
+                )
+                continue
             print("RESULT", result)
 
             context.SubmitWork(
