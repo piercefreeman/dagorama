@@ -13,3 +13,8 @@ python = "^3.10"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.build]
+# Custom builder until Poetry expands their build plugin support: https://github.com/python-poetry/poetry/issues/2740
+generate-setup-file = false
+script = "build.py"
