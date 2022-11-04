@@ -83,6 +83,10 @@ func (queue *HeapQueue) PeekItem() *QueuedJob {
 	return queue.heap[0]
 }
 
+func (queue *HeapQueue) Length() int {
+	return queue.heap.Len()
+}
+
 /*
  * HeapQueue implements heap.Interface.
  */

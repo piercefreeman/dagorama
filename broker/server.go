@@ -19,6 +19,7 @@ func NewBrokerServer() *BrokerServer {
 	// GC should run in the background periodically. The function will own
 	// its own wakeup logic and will run forever.
 	go broker.GarbageCollectWorkers()
+	go broker.QueueFutureScheduled()
 
 	return &BrokerServer{
 		broker: broker,

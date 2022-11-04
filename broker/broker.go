@@ -336,6 +336,7 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	/*
 	 * Enqueue a DAG node into the appropriate queue
 	 */
+	log.Printf("Enqueueing node %s", node.identifier)
 	broker.taskQueuesLock.Lock()
 	defer broker.taskQueuesLock.Unlock()
 
@@ -445,6 +446,45 @@ func (broker *Broker) GarbageCollectWorkersExecute() {
 			worker.claimedWork = make([]*DAGNode, 0)
 			worker.invalidated = true
 		}
+	}
+}
+
+func (broker *Broker) QueueFutureScheduled() {
+	/*
+	 * Determines if any of the future scheduled nodes should be queued as being ready
+	 * for work.
+	 */
+	for true {
+		broker.QueueFutureScheduledExecute()
+		time.Sleep(time.Duration(10) * time.Second)
+	}
+}
+
+func (broker *Broker) QueueFutureScheduledExecute() {
+	if broker.futureScheduledNodes.Length() == 0 {
+		return
+	}
+
+	// The first element in the queue should always be the one that
+	// is first in line to re-queue. The second that we hit an object that
+	// isn't ready yet, we know all objects after it will be too.
+	broker.futureScheduledNodesLock.Lock()
+	defer broker.futureScheduledNodesLock.Unlock()
+
+	for true {
+		nextNode := broker.futureScheduledNodes.PeekItem()
+		if nextNode == nil {
+			break
+		}
+
+		if nextNode.priority > time.Now().UnixMilli() {
+			// Not ready yet
+			break
+		}
+
+		// Ready to re-queue
+		node := broker.futureScheduledNodes.PopItem().node
+		broker.EnqueueNode(node)
 	}
 }
 
