@@ -25,7 +25,7 @@ func TestRetryStatic(t *testing.T) {
 }
 
 func TestRetryBackoff(t *testing.T) {
-	policy := NewExponentialRetryPolicy(3)
+	policy := NewExponentialRetryPolicy(2, 3)
 
 	// 2^0 = 1
 	if ms := policy.getWaitIntervalMilliseconds(); !(ms >= 1000 && ms <= 2000) {

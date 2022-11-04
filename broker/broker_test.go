@@ -36,7 +36,7 @@ func TestBroker(t *testing.T) {
 		t.Fatalf("Expected no jobs are ready yet.")
 	}
 
-	nextNode.ValueDidResolve([]byte{})
+	nextNode.ExecutionDidResolve([]byte{})
 
 	nextNode = broker.PopNextNode(worker)
 
@@ -45,7 +45,7 @@ func TestBroker(t *testing.T) {
 	}
 
 	// Simulate the job completing
-	nextNode.ValueDidResolve([]byte{})
+	nextNode.ExecutionDidResolve([]byte{})
 }
 
 func TestAllowedQueues(t *testing.T) {

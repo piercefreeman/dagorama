@@ -10,10 +10,10 @@ type RetryPolicy struct {
 	 * Policy to retry failedRequests
 	 */
 	currentAttempt int
-	retryMaxCount  int
+	maxAttempts    int
 
 	// Seconds
-	retryAfterStaticInterval int
+	staticInterval int
 
 	// Base of the exponent (x^t) where t is the times that we
 	// have previously tried the backoff
@@ -22,21 +22,21 @@ type RetryPolicy struct {
 	exponentialBackoffBase int
 }
 
-func NewStaticRetryPolicy(retryAfterStaticInterval int, retryMaxCount int) *RetryPolicy {
+func NewStaticRetryPolicy(staticInterval int, maxAttempts int) *RetryPolicy {
 	return &RetryPolicy{
-		retryMaxCount:            retryMaxCount,
-		retryAfterStaticInterval: retryAfterStaticInterval,
-		exponentialBackoffBase:   0,
-		currentAttempt:           0,
+		maxAttempts:            maxAttempts,
+		staticInterval:         staticInterval,
+		exponentialBackoffBase: 0,
+		currentAttempt:         0,
 	}
 }
 
-func NewExponentialRetryPolicy(retryMaxCount int) *RetryPolicy {
+func NewExponentialRetryPolicy(exponentialBackoffBase int, maxAttempts int) *RetryPolicy {
 	return &RetryPolicy{
-		retryMaxCount:            retryMaxCount,
-		exponentialBackoffBase:   2,
-		retryAfterStaticInterval: 0,
-		currentAttempt:           0,
+		maxAttempts:            maxAttempts,
+		exponentialBackoffBase: exponentialBackoffBase,
+		staticInterval:         0,
+		currentAttempt:         0,
 	}
 }
 
@@ -48,14 +48,14 @@ func (policy *RetryPolicy) getWaitIntervalMilliseconds() int {
 	 *
 	 * -1 if we shouldn't retry
 	 */
-	if policy.currentAttempt >= policy.retryMaxCount {
+	if policy.currentAttempt >= policy.maxAttempts {
 		return -1
 	}
 
 	defer func() { policy.currentAttempt += 1 }()
 
-	if policy.retryAfterStaticInterval > 0 {
-		return policy.retryAfterStaticInterval * 1000
+	if policy.staticInterval > 0 {
+		return policy.staticInterval * 1000
 	} else if policy.exponentialBackoffBase > 0 {
 		jitter := rand.Float64() * 1000
 		waitSeconds := math.Pow(float64(policy.exponentialBackoffBase), float64(policy.currentAttempt))

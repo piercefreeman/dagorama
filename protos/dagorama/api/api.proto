@@ -16,6 +16,7 @@ service Dagorama {
   rpc GetNode(NodeRetrieveMessage) returns (NodeMessage) {}
   rpc GetWork(WorkerMessage) returns (NodeMessage) {}
   rpc SubmitWork(WorkCompleteMessage) returns (NodeMessage) {}
+  rpc SubmitFailure(WorkFailedMessage) returns (NodeMessage) {}
 }
 
 message WorkerConfigurationMessage {
@@ -48,6 +49,9 @@ message NodeConfigurationMessage {
   repeated string sourceIds = 7;
 
   string instanceId = 8;
+
+  // Retry customization
+  RetryMessage retry = 9;
 }
 
 message NodeMessage {
@@ -62,11 +66,20 @@ message NodeMessage {
   bytes arguments = 6;
   bytes resolvedValue = 7;
 
+  // Nodes that this node depends on
+  // By the time that this message is sent back to client callers
+  // these values should be fully populated
   repeated NodeMessage sources = 8;
 
   bool completed = 9;
 
   string instanceId = 10;
+}
+
+message RetryMessage {
+  int32 maxAttempts = 1;
+  int32 staticInterval = 2;
+  int32 exponentialBase = 3;
 }
 
 message PongMessage {
@@ -79,6 +92,14 @@ message WorkCompleteMessage {
   string workerId = 3;
 
   bytes result = 4;
+}
+
+message WorkFailedMessage {
+  string instanceId = 1;
+  string nodeId = 2;
+  string workerId = 3;
+
+  string traceback = 4;
 }
 
 message NodeRetrieveMessage {

@@ -87,7 +87,7 @@ type DAGNode struct {
 	failuresLock sync.RWMutex
 }
 
-func (node *DAGNode) ValueDidResolve(value []byte) {
+func (node *DAGNode) ExecutionDidResolve(value []byte) {
 	/*
 	 * Called by clients when we have finalized a value for this DAG Node
 	 */

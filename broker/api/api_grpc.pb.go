@@ -29,6 +29,7 @@ type DagoramaClient interface {
 	GetNode(ctx context.Context, in *NodeRetrieveMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	SubmitWork(ctx context.Context, in *WorkCompleteMessage, opts ...grpc.CallOption) (*NodeMessage, error)
+	SubmitFailure(ctx context.Context, in *WorkFailedMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 }
 
 type dagoramaClient struct {
@@ -102,6 +103,15 @@ func (c *dagoramaClient) SubmitWork(ctx context.Context, in *WorkCompleteMessage
 	return out, nil
 }
 
+func (c *dagoramaClient) SubmitFailure(ctx context.Context, in *WorkFailedMessage, opts ...grpc.CallOption) (*NodeMessage, error) {
+	out := new(NodeMessage)
+	err := c.cc.Invoke(ctx, "/main.Dagorama/SubmitFailure", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DagoramaServer is the server API for Dagorama service.
 // All implementations must embed UnimplementedDagoramaServer
 // for forward compatibility
@@ -113,6 +123,7 @@ type DagoramaServer interface {
 	GetNode(context.Context, *NodeRetrieveMessage) (*NodeMessage, error)
 	GetWork(context.Context, *WorkerMessage) (*NodeMessage, error)
 	SubmitWork(context.Context, *WorkCompleteMessage) (*NodeMessage, error)
+	SubmitFailure(context.Context, *WorkFailedMessage) (*NodeMessage, error)
 	mustEmbedUnimplementedDagoramaServer()
 }
 
@@ -140,6 +151,9 @@ func (UnimplementedDagoramaServer) GetWork(context.Context, *WorkerMessage) (*No
 }
 func (UnimplementedDagoramaServer) SubmitWork(context.Context, *WorkCompleteMessage) (*NodeMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitWork not implemented")
+}
+func (UnimplementedDagoramaServer) SubmitFailure(context.Context, *WorkFailedMessage) (*NodeMessage, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitFailure not implemented")
 }
 func (UnimplementedDagoramaServer) mustEmbedUnimplementedDagoramaServer() {}
 
@@ -280,6 +294,24 @@ func _Dagorama_SubmitWork_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Dagorama_SubmitFailure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WorkFailedMessage)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DagoramaServer).SubmitFailure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/main.Dagorama/SubmitFailure",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DagoramaServer).SubmitFailure(ctx, req.(*WorkFailedMessage))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Dagorama_ServiceDesc is the grpc.ServiceDesc for Dagorama service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -314,6 +346,10 @@ var Dagorama_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SubmitWork",
 			Handler:    _Dagorama_SubmitWork_Handler,
+		},
+		{
+			MethodName: "SubmitFailure",
+			Handler:    _Dagorama_SubmitFailure_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

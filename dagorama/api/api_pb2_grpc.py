@@ -49,6 +49,11 @@ class DagoramaStub(object):
                 request_serializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.SerializeToString,
                 response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
                 )
+        self.SubmitFailure = channel.unary_unary(
+                '/main.Dagorama/SubmitFailure',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
 
 
 class DagoramaServicer(object):
@@ -96,6 +101,12 @@ class DagoramaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def SubmitFailure(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_DagoramaServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -132,6 +143,11 @@ def add_DagoramaServicer_to_server(servicer, server):
             'SubmitWork': grpc.unary_unary_rpc_method_handler(
                     servicer.SubmitWork,
                     request_deserializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'SubmitFailure': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitFailure,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.FromString,
                     response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
             ),
     }
@@ -259,6 +275,23 @@ class Dagorama(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/main.Dagorama/SubmitWork',
             dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.SerializeToString,
+            dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def SubmitFailure(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/SubmitFailure',
+            dagorama_dot_api_dot_api__pb2.WorkFailedMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

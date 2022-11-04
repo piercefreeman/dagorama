@@ -97,6 +97,7 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
     ARGUMENTS_FIELD_NUMBER: builtins.int
     SOURCEIDS_FIELD_NUMBER: builtins.int
     INSTANCEID_FIELD_NUMBER: builtins.int
+    RETRY_FIELD_NUMBER: builtins.int
     identifier: builtins.str
     functionName: builtins.str
     functionHash: builtins.str
@@ -106,6 +107,9 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
     @property
     def sourceIds(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     instanceId: builtins.str
+    @property
+    def retry(self) -> global___RetryMessage:
+        """Retry customization"""
     def __init__(
         self,
         *,
@@ -117,8 +121,10 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
         arguments: builtins.bytes = ...,
         sourceIds: collections.abc.Iterable[builtins.str] | None = ...,
         instanceId: builtins.str = ...,
+        retry: global___RetryMessage | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "sourceIds", b"sourceIds", "taintName", b"taintName"]) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["retry", b"retry"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "retry", b"retry", "sourceIds", b"sourceIds", "taintName", b"taintName"]) -> None: ...
 
 global___NodeConfigurationMessage = NodeConfigurationMessage
 
@@ -145,7 +151,11 @@ class NodeMessage(google.protobuf.message.Message):
     arguments: builtins.bytes
     resolvedValue: builtins.bytes
     @property
-    def sources(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___NodeMessage]: ...
+    def sources(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___NodeMessage]:
+        """Nodes that this node depends on
+        By the time that this message is sent back to client callers
+        these values should be fully populated
+        """
     completed: builtins.bool
     instanceId: builtins.str
     def __init__(
@@ -165,6 +175,27 @@ class NodeMessage(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "resolvedValue", b"resolvedValue", "sources", b"sources", "taintName", b"taintName"]) -> None: ...
 
 global___NodeMessage = NodeMessage
+
+@typing_extensions.final
+class RetryMessage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    MAXATTEMPTS_FIELD_NUMBER: builtins.int
+    STATICINTERVAL_FIELD_NUMBER: builtins.int
+    EXPONENTIALBASE_FIELD_NUMBER: builtins.int
+    maxAttempts: builtins.int
+    staticInterval: builtins.int
+    exponentialBase: builtins.int
+    def __init__(
+        self,
+        *,
+        maxAttempts: builtins.int = ...,
+        staticInterval: builtins.int = ...,
+        exponentialBase: builtins.int = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["exponentialBase", b"exponentialBase", "maxAttempts", b"maxAttempts", "staticInterval", b"staticInterval"]) -> None: ...
+
+global___RetryMessage = RetryMessage
 
 @typing_extensions.final
 class PongMessage(google.protobuf.message.Message):
@@ -204,6 +235,30 @@ class WorkCompleteMessage(google.protobuf.message.Message):
     def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "result", b"result", "workerId", b"workerId"]) -> None: ...
 
 global___WorkCompleteMessage = WorkCompleteMessage
+
+@typing_extensions.final
+class WorkFailedMessage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    INSTANCEID_FIELD_NUMBER: builtins.int
+    NODEID_FIELD_NUMBER: builtins.int
+    WORKERID_FIELD_NUMBER: builtins.int
+    TRACEBACK_FIELD_NUMBER: builtins.int
+    instanceId: builtins.str
+    nodeId: builtins.str
+    workerId: builtins.str
+    traceback: builtins.str
+    def __init__(
+        self,
+        *,
+        instanceId: builtins.str = ...,
+        nodeId: builtins.str = ...,
+        workerId: builtins.str = ...,
+        traceback: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "traceback", b"traceback", "workerId", b"workerId"]) -> None: ...
+
+global___WorkFailedMessage = WorkFailedMessage
 
 @typing_extensions.final
 class NodeRetrieveMessage(google.protobuf.message.Message):

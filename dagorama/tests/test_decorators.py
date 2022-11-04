@@ -1,8 +1,8 @@
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import execute, CodeMismatchException
+from dagorama.runner import execute
+from dagorama.retry import StaticRetry, ExponentialRetry
 import pytest
-from contextlib import contextmanager
 
 
 class CustomNameDag(DAGDefinition):
@@ -15,6 +15,18 @@ class CustomTaintDag(DAGDefinition):
     @dagorama(taint_name="test_taint")
     def entrypoint(self):
         return 10
+
+
+class CustomStaticErroringDag(DAGDefinition):
+    @dagorama(retry=StaticRetry(max_attempts=2, interval=1))
+    def entrypoint(self):
+        raise ValueError()
+
+
+class CustomExponentialErroringDag(DAGDefinition):
+    @dagorama(retry=ExponentialRetry(max_attempts=2, base_interval=2))
+    def entrypoint(self):
+        raise ValueError()
 
 
 def test_custom_name(broker):
@@ -49,3 +61,13 @@ def test_taint_name(broker):
     # Require specific allowance
     execute(queue_tolerations=["test_taint"], infinite_loop=False)
     assert resolve(dag, dag_result) == 10
+
+
+@pytest.mark.parametrize("dag_class", [CustomStaticErroringDag, CustomExponentialErroringDag])
+def test_erroring_dags(broker, dag_class):
+    dag = dag_class()
+    dag_result = dag()
+
+    # Should not run a tained queue by default
+    execute(infinite_loop=False)
+    assert resolve(dag, dag_result) == None

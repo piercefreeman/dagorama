@@ -47,6 +47,15 @@ func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationM
 		sourceNodes = append(sourceNodes, instance.GetNode(source))
 	}
 
+	var retryPolicy *RetryPolicy
+	if in.Retry != nil {
+		if in.Retry.StaticInterval > 0 {
+			retryPolicy = NewStaticRetryPolicy(int(in.Retry.StaticInterval), int(in.Retry.MaxAttempts))
+		} else if in.Retry.ExponentialBase > 0 {
+			retryPolicy = NewExponentialRetryPolicy(int(in.Retry.ExponentialBase), int(in.Retry.MaxAttempts))
+		}
+	}
+
 	node := instance.NewNode(
 		in.Identifier,
 		in.FunctionName,
@@ -55,8 +64,7 @@ func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationM
 		in.TaintName,
 		in.Arguments,
 		sourceNodes,
-		// TODO: Add backoff
-		nil,
+		retryPolicy,
 	)
 	return s.nodeToMessage(node), nil
 }
@@ -106,7 +114,22 @@ func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessag
 
 	instance := s.broker.GetInstance(in.InstanceId)
 	node := instance.GetNode(in.NodeId)
-	node.ValueDidResolve(in.Result)
+	node.ExecutionDidResolve(in.Result)
+
+	return s.nodeToMessage(node), nil
+}
+
+func (s *BrokerServer) SubmitFailure(ctx context.Context, in *pb.WorkFailedMessage) (*pb.NodeMessage, error) {
+	log.Printf("Submit failure")
+	worker := s.broker.GetWorker(in.WorkerId)
+
+	if worker.invalidated {
+		return nil, errors.New("worker invalidated")
+	}
+
+	instance := s.broker.GetInstance(in.InstanceId)
+	node := instance.GetNode(in.NodeId)
+	node.ExecutionDidFail(in.Traceback)
 
 	return s.nodeToMessage(node), nil
 }
