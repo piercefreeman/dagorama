@@ -1,7 +1,9 @@
 name: Release Python Package
 
 on:
-  push
+  push:
+    tags:
+      - "*"
 
 jobs:
   publish_python_package:

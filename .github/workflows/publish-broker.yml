@@ -1,7 +1,9 @@
 name: Release Broker
 
 on:
-  push
+  push:
+    tags:
+      - "*"
 
 jobs:
   build_python_wheels:
