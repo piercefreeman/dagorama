@@ -36,6 +36,7 @@ jobs:
         run: |
           export PATH="/Users/runner/.local/bin:$PATH"
           poetry install
+          cp -r broker ./dagorama-broker
           poetry run pip install -e ./dagorama-broker
 
       - name: Run tests
