@@ -52,7 +52,7 @@ def name_to_function(name: str, instance_id: UUID):
         # Get class from cached globals, if possible
         component_name = f"{package_name}:{'.'.join(fn_path_components[:i+1])}"
         if component_name in DEFINITION_CACHE:
-            mod = DEFINITION_CACHE[component_name]
+            mod = DEFINITION_CACHE[component_name]  # type: ignore
         else:
             if not hasattr(mod, component):
                 raise ValueError(f"Unable to resolve dagorama function: {name}")
@@ -71,6 +71,6 @@ def name_to_function(name: str, instance_id: UUID):
         # We should re-wrap this instance with the context that we know
         # from the message
         if isinstance(mod, DAGDefinition):
-            mod = DAGInstance(instance_id, mod)
+            mod = DAGInstance(instance_id, mod) # type: ignore
 
     return mod

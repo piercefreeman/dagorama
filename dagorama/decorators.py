@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar, cast, Any
+from typing import ParamSpec, TypeVar, cast, Coroutine, Any
 from uuid import uuid4, UUID
 from functools import wraps
 from inspect import isawaitable
@@ -54,7 +54,7 @@ def dagorama(
             if greedy_execution:
                 result = func(*args, **kwargs)
                 if isawaitable(result):
-                    return run(result)
+                    return run(result)  # type: ignore
                 else:
                     return result
 
