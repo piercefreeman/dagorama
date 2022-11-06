@@ -11,6 +11,12 @@ class CustomNameDag(DAGDefinition):
         return 10
 
 
+class CustomAsyncDag(DAGDefinition):
+    @dagorama(queue_name="test_queue")
+    async def entrypoint(self):
+        return 10
+
+
 class CustomTaintDag(DAGDefinition):
     @dagorama(taint_name="test_taint")
     def entrypoint(self):
@@ -49,6 +55,18 @@ def test_custom_name(broker):
         infinite_loop=False
     )
     assert resolve(dag_instance, dag_result) == None
+
+
+def test_async(broker):
+    dag = CustomAsyncDag()
+    dag_instance, dag_result = dag()
+
+    # Should run this queue
+    execute(
+        include_queues=["test_queue"],
+        infinite_loop=False
+    )
+    assert resolve(dag_instance, dag_result) == 10
 
 
 def test_taint_name(broker):

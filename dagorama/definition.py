@@ -15,26 +15,6 @@ from dagorama.models.promise import DAGPromise
 RUN_LOOP_PROMISES: list[DAGPromise] = []
 
 
-@contextmanager
-def dagorama_context():
-    # TODO: Get global context otherwise creates it
-
-    with grpc.insecure_channel("localhost:50051") as channel:
-        yield pb2_grpc.DagoramaStub(channel)
-
-
-def generate_instance_id() -> UUID:
-    # Calling indicates that we should spin off a new DAG instance
-    with dagorama_context() as context:
-        instance_id = uuid4()
-        context.CreateInstance(
-            pb2.InstanceConfigurationMessage(
-                identifier=str(instance_id)
-            )
-        )
-    return instance_id
-
-
 class DAGDefinition(ABC):
     def __call__(self, *args, **kwargs) -> tuple["DAGInstance", DAGPromise]:
         # We don't have an instance ID yet for this invocation
@@ -53,20 +33,6 @@ class DAGDefinition(ABC):
     @abstractmethod
     def entrypoint(self, *args, **kwargs):
         pass
-
-
-def inject_instance(instance):
-    def decorator(func):
-        # Deal with instance methods that inject their own "self" into the
-        # function as part of the call execution
-        if ismethod(func):
-            func = getattr(func, "__func__")
-
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(instance, *args, **kwargs)
-        return wrapper
-    return decorator
 
 
 class DAGInstance:
@@ -90,6 +56,40 @@ class DAGInstance:
         if name in ["instance_id", "definition"]:
             return super().__delattr__(name)
         return delattr(self.definition, name)
+
+
+@contextmanager
+def dagorama_context():
+    # TODO: Get global context otherwise creates it
+
+    with grpc.insecure_channel("localhost:50051") as channel:
+        yield pb2_grpc.DagoramaStub(channel)
+
+
+def generate_instance_id() -> UUID:
+    # Calling indicates that we should spin off a new DAG instance
+    with dagorama_context() as context:
+        instance_id = uuid4()
+        context.CreateInstance(
+            pb2.InstanceConfigurationMessage(
+                identifier=str(instance_id)
+            )
+        )
+    return instance_id
+
+
+def inject_instance(instance):
+    def decorator(func):
+        # Deal with instance methods that inject their own "self" into the
+        # function as part of the call execution
+        if ismethod(func):
+            func = getattr(func, "__func__")
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(instance, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def resolve(instance: DAGInstance, promise: DAGPromise):

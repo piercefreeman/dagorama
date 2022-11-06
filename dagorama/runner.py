@@ -91,7 +91,11 @@ def execute(
             print("Resolved", resolved_args)
             print("Resolved", resolved_kwargs)
 
+            # Since this function was queued as part of the worker, we can assume that it will
+            # be a wrapped @dagorama function - it will therefore be a standard callable without
+            # async since it takes care of the client-side async logic internally.
             resolved_fn = name_to_function(next_item.functionName, next_item.instanceId)
+            print("RESOLVED FN", resolved_fn)
 
             # Ensure that we have the correct local version of the function
             print("FOUND FN", resolved_fn)
@@ -115,7 +119,6 @@ def execute(
                     continue
             else:
                 result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
-            print("RESULT", result)
 
             context.SubmitWork(
                 pb2.WorkCompleteMessage(

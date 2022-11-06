@@ -2,6 +2,8 @@ from collections.abc import Callable
 from typing import ParamSpec, TypeVar, cast, Any
 from uuid import uuid4, UUID
 from functools import wraps
+from inspect import isawaitable
+from asyncio import run
 
 import dagorama.api.api_pb2 as pb2
 from dagorama.definition import DAGDefinition, dagorama_context, DAGInstance
@@ -50,7 +52,11 @@ def dagorama(
             # https://github.com/python/typing/discussions/1191
             greedy_execution = kwargs.pop("greedy_execution", False)
             if greedy_execution:
-                return func(*args, **kwargs)
+                result = func(*args, **kwargs)
+                if isawaitable(result):
+                    return run(result)
+                else:
+                    return result
 
             # Strip out the class definition when we store the arguments
             isolated_args = cast(list, args)[1:]
