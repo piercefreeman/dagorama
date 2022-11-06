@@ -31,43 +31,44 @@ class CustomExponentialErroringDag(DAGDefinition):
 
 def test_custom_name(broker):
     dag = CustomNameDag()
-    dag_result = dag()
+    dag_instance, dag_result = dag()
 
     # Should run this queue
     execute(
         include_queues=["test_queue"],
         infinite_loop=False
     )
-    assert resolve(dag, dag_result) == 10
+    assert resolve(dag_instance, dag_result) == 10
 
     dag = CustomNameDag()
-    dag_result = dag()
+    dag_instance, dag_result = dag()
 
     # Should not run this queue
     execute(
         include_queues=["test_queue_2"],
         infinite_loop=False
     )
-    assert resolve(dag, dag_result) == None
+    assert resolve(dag_instance, dag_result) == None
+
 
 def test_taint_name(broker):
     dag = CustomTaintDag()
-    dag_result = dag()
+    dag_instance, dag_result = dag()
 
     # Should not run a tained queue by default
     execute(infinite_loop=False)
-    assert resolve(dag, dag_result) == None
+    assert resolve(dag_instance, dag_result) == None
 
     # Require specific allowance
     execute(queue_tolerations=["test_taint"], infinite_loop=False)
-    assert resolve(dag, dag_result) == 10
+    assert resolve(dag_instance, dag_result) == 10
 
 
 @pytest.mark.parametrize("dag_class", [CustomStaticErroringDag, CustomExponentialErroringDag])
 def test_erroring_dags(broker, dag_class):
     dag = dag_class()
-    dag_result = dag()
+    dag_instance, dag_result = dag()
 
     # Should not run a tained queue by default
     execute(infinite_loop=False)
-    assert resolve(dag, dag_result) == None
+    assert resolve(dag_instance, dag_result) == None

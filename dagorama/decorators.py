@@ -1,10 +1,10 @@
 from collections.abc import Callable
-from typing import ParamSpec, TypeVar, cast
-from uuid import uuid4
+from typing import ParamSpec, TypeVar, cast, Any
+from uuid import uuid4, UUID
 from functools import wraps
 
 import dagorama.api.api_pb2 as pb2
-from dagorama.definition import DAGDefinition, dagorama_context
+from dagorama.definition import DAGDefinition, dagorama_context, DAGInstance
 from dagorama.inspection import find_promises
 from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
@@ -34,13 +34,16 @@ def dagorama(
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-            if not isinstance(args[0], DAGDefinition):
-                raise ValueError("@dagorama can only wrap class methods")
+            # Ignore the first argument, which will be the passed through class definition
+            if isinstance(args[0], DAGDefinition):
+                raise ValueError("A @dagorama() function should only be called as part of a DAGInstance")
 
-            dag_definition : DAGDefinition = args[0]
-
-            if dag_definition.instance_id is None:
-                raise ValueError("DAGDefinition must be instantiated with call() before calling a method")
+            # We should instead be called on an instance of the DAG, which is injected into
+            # the second argument slot
+            if isinstance(args[0], DAGInstance):
+                instance = args[0]
+            else:
+                raise ValueError("@dagorama can only be called on DAGInstances")
 
             # Can't be provided as an explicit keyword parameter because of a mypy constraint with P.kwargs having
             # to capture everything
@@ -87,7 +90,7 @@ def dagorama(
                             str(dependency.identifier)
                             for dependency in promise_dependencies
                         ],
-                        instanceId=str(dag_definition.instance_id),
+                        instanceId=str(instance.instance_id),
                         retry=retry.as_message() if retry is not None else None,
                     )
                 )

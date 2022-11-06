@@ -3,7 +3,7 @@ from importlib import import_module
 from inspect import getmodulename, isclass
 from uuid import UUID
 
-from dagorama.definition import DAGDefinition
+from dagorama.definition import DAGDefinition, DAGInstance
 from typing import cast
 
 
@@ -26,15 +26,16 @@ def name_to_function(name: str, instance_id: UUID):
         raise ValueError(f"Could not import function with path: {name}")
 
     for component in fn_path_components:
+        print(mod, component)
         if not hasattr(mod, component):
             raise ValueError(f"Unable to resolve dagorama function: {name}")
 
         mod = getattr(mod, component)
 
         if isclass(mod) and issubclass(mod, DAGDefinition):
-            mod = mod() # type: ignore
-            mod.instance_id = instance_id  # type: ignore
+            mod = DAGInstance(instance_id, mod()) # type: ignore
         elif isclass(mod):
+            print("MOD", mod)
             # Assume we can instantiate classes with no init arguments
             mod = mod()
 

@@ -15,8 +15,12 @@ class CustomDag(DAGDefinition):
                           obj4 (3) --> obj6 (5)
     
     """
+    def __init__(self):
+        self.a = 1
+
     @dagorama()
     def entrypoint(self, number: int):
+        print("Get value", self.a)
         return self.linear_continue(number)
 
     @dagorama()
@@ -52,13 +56,13 @@ def modify_entrypoint_signature():
     CustomDag.entrypoint.original_fn.__name__ = old_name
 
 
-def test_sample_dag(broker):
+def test_sample_dag_1(broker):
     dag = CustomDag()
-    dag_result = dag(1)
+    dag_instance, dag_result = dag(1)
 
     execute(infinite_loop=False)
 
-    assert resolve(dag, dag_result) == 9
+    assert resolve(dag_instance, dag_result) == 9
 
 
 def test_sample_dag_worker_code_mismatch(broker):

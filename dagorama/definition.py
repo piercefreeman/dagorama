@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pickle import loads
-from typing import cast
+from typing import cast, Any
 from uuid import UUID, uuid4
+from inspect import isfunction, ismethod
+from functools import wraps
 
 import grpc
 
@@ -21,33 +23,76 @@ def dagorama_context():
         yield pb2_grpc.DagoramaStub(channel)
 
 
-class DAGDefinition(ABC):
-    def __init__(self):
-        self.instance_id : UUID | None = None
-
-    def __call__(self, *args, **kwargs) -> DAGPromise:
-        if self.instance_id is not None:
-            raise ValueError("Can only spawn one instance of a DAGDefinition")
-
-        # Calling indicates that we should spin off a new DAG instance
-        with dagorama_context() as context:
-            self.instance_id = uuid4()
-            context.CreateInstance(
-                pb2.InstanceConfigurationMessage(
-                    identifier=str(self.instance_id)
-                )
+def generate_instance_id() -> UUID:
+    # Calling indicates that we should spin off a new DAG instance
+    with dagorama_context() as context:
+        instance_id = uuid4()
+        context.CreateInstance(
+            pb2.InstanceConfigurationMessage(
+                identifier=str(instance_id)
             )
+        )
+    return instance_id
 
-        result_promise = self.entrypoint(*args, **kwargs)
+
+class DAGDefinition(ABC):
+    def __call__(self, *args, **kwargs) -> tuple["DAGInstance", DAGPromise]:
+        # We don't have an instance ID yet for this invocation
+        instance_id = generate_instance_id()
+        instance = DAGInstance(instance_id, self)
+
+        # We want to run the first function (entrypoint) as part of the
+        # broader instance context
+        result_promise = instance.entrypoint(*args, **kwargs)
+
         # Cast as an actual result promise since this is what clients expect
-        return cast(DAGPromise, result_promise)
+        result_promise = cast(DAGPromise, result_promise)
+
+        return instance, result_promise
 
     @abstractmethod
     def entrypoint(self, *args, **kwargs):
         pass
 
 
-def resolve(dag: DAGDefinition, promise: DAGPromise):
+def inject_instance(instance):
+    def decorator(func):
+        # Deal with instance methods that inject their own "self" into the
+        # function as part of the call execution
+        if ismethod(func):
+            func = getattr(func, "__func__")
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(instance, *args, **kwargs)
+        return wrapper
+    return decorator
+
+
+class DAGInstance:
+    def __init__(self, instance_id: UUID, definition: DAGDefinition):
+        self.instance_id = instance_id
+        self.definition = definition
+
+    def __getattr__(self, name: str) -> Any:
+        value = getattr(self.definition, name)
+        if callable(value):
+            value = inject_instance(self)(value)
+            return value
+        return getattr(self.definition, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name in ["instance_id", "definition"]:
+            return super().__setattr__(name, value)
+        return setattr(self.definition, name, value)
+
+    def __delattr__(self, name: str) -> None:
+        if name in ["instance_id", "definition"]:
+            return super().__delattr__(name)
+        return delattr(self.definition, name)
+
+
+def resolve(instance: DAGInstance, promise: DAGPromise):
     """
     Given a promise (typically of the initial_entrypoint), will recursively resolve
     promises in a return value chain.
@@ -56,16 +101,13 @@ def resolve(dag: DAGDefinition, promise: DAGPromise):
     then return the true value.
 
     """
-    # TODO: Remove the DAGDefinition, we should be able to infer
-    # the instance ID from the promise
-
     with dagorama_context() as context:
         current_return_value = promise
 
         while isinstance(current_return_value, DAGPromise):
             node = context.GetNode(
                 pb2.NodeRetrieveMessage(
-                    instanceId=str(dag.instance_id),
+                    instanceId=str(instance.instance_id),
                     identifier=str(current_return_value.identifier),
                 )
             )

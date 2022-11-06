@@ -43,6 +43,7 @@ def execute(
     include_queues: list | None = None,
     queue_tolerations: list | None = None,
     infinite_loop: bool = True,
+    catch_exceptions: bool = True,
 ):
     with dagorama_context() as context:
         worker = context.CreateWorker(
@@ -94,23 +95,26 @@ def execute(
 
             # Ensure that we have the correct local version of the function
             print("FOUND FN", resolved_fn)
-            print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
+            #print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
             if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
                 raise CodeMismatchException()
 
-            try:
-                result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
-            except Exception as e:
-                traceback = format_exc()
-                context.SubmitFailure(
-                    pb2.WorkFailedMessage(
-                        instanceId=next_item.instanceId,
-                        nodeId=next_item.identifier,
-                        workerId=worker.identifier,
-                        traceback=traceback
+            if catch_exceptions:
+                try:
+                    result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+                except Exception as e:
+                    traceback = format_exc()
+                    context.SubmitFailure(
+                        pb2.WorkFailedMessage(
+                            instanceId=next_item.instanceId,
+                            nodeId=next_item.identifier,
+                            workerId=worker.identifier,
+                            traceback=traceback
+                        )
                     )
-                )
-                continue
+                    continue
+            else:
+                result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
             print("RESULT", result)
 
             context.SubmitWork(
