@@ -94,12 +94,12 @@ class MyTask(DAGDefinition):
 def main():
     with launch_broker():
         start = time()
-        task = MyTask()
-        promise = task()
+        definition = MyTask()
+        instance, promise = task()
 
         with launch_workers(4):
             sleep(3)
-        response = resolve(task, promise)
+        response = resolve(instance, promise)
         end = time() 
 
     print(f"Response: {response} in {round(end-start, 2)}s")
@@ -149,7 +149,7 @@ This is the core design goal of dagorama: write vanilla python and scale easily.
 
 This section attempts to be the only section you'll need to know to use dagorama in day-to-day development, without starting to offroad.
 
-Each group of logical code that you want to flow to one another should be contained in a class that inherits from `DAGDefinition`. You'll want this code to be deployed on each worker node so they're able to access the same core definition files. Docker is the preferred mechanism to ensure that the same code is mirrored on each device and computations will happen as expected. Each instance of a DAGDefinition created via `DAGDefinition()` wraps one execution of the functions within the DAG. If you're processing 5 separate input images, for example, you'll want to spawn 5 DAGDefinitions.
+Each group of logical code that you want to flow to one another should be contained in a class that inherits from `DAGDefinition`. You'll want this code to be deployed on each worker node so they're able to access the same core definition files. Docker is the preferred mechanism to ensure that the same code is mirrored on each device and computations will happen as expected. When you call a definition with the entrypoint arguments, like `dag(1)`, it will create a new instance of the DAG for execution. This instance will house the functions within the DAG. If you're processing 5 separate input images, for example, you'll want to spawn 5 DAGInstances.
 
 The dagorama broker will ensure that earlier DAG instances will complete before ones that are invoked later. The prioritization scheme is FIFO on the DAG instantiation order. This is useful in situations where you want to decrease the latency from start of processing to DAG completion for use in near-realtime logic.
 
