@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from pickle import dumps, loads
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from dagorama.inspection import extract_promise_identifiers
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from dagorama.models.promise import DAGPromise
 

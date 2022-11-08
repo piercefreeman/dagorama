@@ -1,5 +1,6 @@
-from dagorama.code_signature import calculate_function_hash
 from multiprocessing import Pool
+
+from dagorama.code_signature import calculate_function_hash
 
 
 def test_code_signature_basic():

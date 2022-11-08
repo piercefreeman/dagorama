@@ -1,14 +1,16 @@
-from dagorama.runner import execute, execute_async
-from dagorama.definition import DAGDefinition, resolve
-from dagorama.decorators import dagorama
-from dagorama.serializer import register_definition
 from inspect import getfullargspec
+
+from dagorama.decorators import dagorama
+from dagorama.definition import DAGDefinition, resolve
+from dagorama.runner import execute, execute_async
+from dagorama.serializer import register_definition
+
 
 class CustomDAG(DAGDefinition):
     def __init__(self, number: int):
         self.number = number
 
-    @dagorama()
+    @dagorama().syncfn
     def entrypoint(self):
         return self.number
 

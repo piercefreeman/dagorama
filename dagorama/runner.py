@@ -1,21 +1,21 @@
-from pickle import dumps, loads
-from time import sleep
+from asyncio import run
 from contextlib import contextmanager
+from inspect import isawaitable
+from multiprocessing import Process
+from pickle import dumps, loads
+from threading import Thread
+from time import sleep
+from traceback import format_exc
 
 import grpc
 
-import dagorama.api.api_pb2_grpc as pb2_grpc
 import dagorama.api.api_pb2 as pb2
+import dagorama.api.api_pb2_grpc as pb2_grpc
+from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
-from multiprocessing import Process
-from dagorama.code_signature import calculate_function_hash
-from threading import Thread
-from traceback import format_exc
-from inspect import isawaitable
-from asyncio import run
 
 
 class CodeMismatchException(Exception):

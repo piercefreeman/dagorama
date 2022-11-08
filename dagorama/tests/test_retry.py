@@ -1,5 +1,7 @@
-from dagorama.retry import RetryConfiguration, ExponentialRetry, StaticRetry
 import pytest
+
+from dagorama.retry import ExponentialRetry, RetryConfiguration, StaticRetry
+
 
 @pytest.mark.parametrize(
     "policy",

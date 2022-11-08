@@ -1,36 +1,37 @@
-from dagorama.decorators import dagorama, dagorama_async
-from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import execute, execute_async
-from dagorama.retry import StaticRetry, ExponentialRetry
 import pytest
+
+from dagorama.decorators import dagorama
+from dagorama.definition import DAGDefinition, resolve
+from dagorama.retry import ExponentialRetry, StaticRetry
+from dagorama.runner import execute, execute_async
 
 
 class CustomNameDag(DAGDefinition):
-    @dagorama(queue_name="test_queue")
+    @dagorama(queue_name="test_queue").syncfn
     def entrypoint(self):
         return 10
 
 
 class CustomAsyncDag(DAGDefinition):
-    @dagorama_async(queue_name="test_queue")
+    @dagorama(queue_name="test_queue").asyncfn
     async def entrypoint(self):
         return 10
 
 
 class CustomTaintDag(DAGDefinition):
-    @dagorama(taint_name="test_taint")
+    @dagorama(taint_name="test_taint").syncfn
     def entrypoint(self):
         return 10
 
 
 class CustomStaticErroringDag(DAGDefinition):
-    @dagorama(retry=StaticRetry(max_attempts=2, interval=1))
+    @dagorama(retry=StaticRetry(max_attempts=2, interval=1)).syncfn
     def entrypoint(self):
         raise ValueError()
 
 
 class CustomExponentialErroringDag(DAGDefinition):
-    @dagorama(retry=ExponentialRetry(max_attempts=2, base_interval=2))
+    @dagorama(retry=ExponentialRetry(max_attempts=2, base_interval=2)).syncfn
     def entrypoint(self):
         raise ValueError()
 

@@ -1,11 +1,11 @@
-from dagorama.definition import DAGInstance, DAGDefinition, generate_instance_id
 from dagorama.decorators import dagorama
+from dagorama.definition import (DAGDefinition, DAGInstance,
+                                 generate_instance_id)
 from dagorama.runner import execute
 
 
-
 class SampleDefinition(DAGDefinition):
-    @dagorama()
+    @dagorama().syncfn
     def entrypoint(self, *args, **kwargs):
         self.standard_function()
         assert isinstance(self, DAGInstance)
