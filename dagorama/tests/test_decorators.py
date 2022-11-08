@@ -1,4 +1,4 @@
-from dagorama.decorators import dagorama
+from dagorama.decorators import dagorama, dagorama_async
 from dagorama.definition import DAGDefinition, resolve
 from dagorama.runner import execute, execute_async
 from dagorama.retry import StaticRetry, ExponentialRetry
@@ -12,7 +12,7 @@ class CustomNameDag(DAGDefinition):
 
 
 class CustomAsyncDag(DAGDefinition):
-    @dagorama(queue_name="test_queue")
+    @dagorama_async(queue_name="test_queue")
     async def entrypoint(self):
         return 10
 

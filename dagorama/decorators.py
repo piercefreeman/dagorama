@@ -1,9 +1,8 @@
-from collections.abc import Callable
-from typing import ParamSpec, TypeVar, cast, Coroutine, Any
+from collections.abc import Callable, Awaitable
+from typing import ParamSpec, TypeVar, cast, Any
 from uuid import uuid4, UUID
 from functools import wraps
-from inspect import isawaitable, iscoroutinefunction
-from asyncio import run
+from inspect import iscoroutinefunction
 from dataclasses import dataclass
 
 import dagorama.api.api_pb2 as pb2
@@ -18,10 +17,9 @@ from dagorama.retry import RetryConfiguration
 T = TypeVar('T')
 P = ParamSpec('P')
 
-
 @dataclass
 class WrapperResults:
-    result: Callable[P, T] | None = None
+    result: Any | None = None
     promise: DAGPromise | None = None
 
 
@@ -102,7 +100,7 @@ def dagorama(
     queue_name: str | None = None,
     taint_name: str | None = None,
     retry: RetryConfiguration | None = None,
-) -> Callable[[Callable[P, T]], Callable[P, T]]:
+):
     """
     The actual return type of functions wrapped with @dagorama() will be a DAGPromise. This is not what we want during
     development because this is a typeless type. Instead, we want to program the graph as if all promises are instantly
@@ -115,26 +113,44 @@ def dagorama(
     """
     def decorator(func: Callable[P, T]) -> Callable[P, T]:
         if iscoroutinefunction(func):
-            @wraps(func)
-            async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-                payload = common_wrapper(func, queue_name, taint_name, retry, *args, **kwargs)
-                if payload.result:
-                    return await payload.result
+            raise ValueError("dagorama_async() is required for async functions")
 
-                return cast(
-                    # Wrong cast of types but we want the static typechecker to believe that the function
-                    # is returning the actual value as specified by the client caller
-                    # https://docs.python.org/3/library/typing.html#typing.ParamSpec
-                    T, payload.promise,
-                )
-        else:
-            @wraps(func)
-            def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
-                payload = common_wrapper(func, queue_name, taint_name, retry, *args, **kwargs)
-                if payload.result:
-                    return payload.result
+        @wraps(func)
+        def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            payload = common_wrapper(func, queue_name, taint_name, retry, *args, **kwargs)
+            if payload.result:
+                return payload.result
 
-                return cast(T, payload.promise)
+            return cast(T, payload.promise)
+
+        wrapper.original_fn = func  # type: ignore
+        return wrapper
+    return decorator
+
+
+def dagorama_async(
+    queue_name: str | None = None,
+    taint_name: str | None = None,
+    retry: RetryConfiguration | None = None,
+):
+    # Requires a separate decorator because we want to keep Awaitable[T] input tied
+    # to Awaitable[T] output
+    def decorator(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
+        if not iscoroutinefunction(func):
+            raise ValueError("dagorama_async() can only be applied to async functions")
+
+        @wraps(func)
+        async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+            payload = common_wrapper(func, queue_name, taint_name, retry, *args, **kwargs)
+            if payload.result:
+                return await payload.result
+
+            return cast(
+                # Wrong cast of types but we want the static typechecker to believe that the function
+                # is returning the actual value as specified by the client caller
+                # https://docs.python.org/3/library/typing.html#typing.ParamSpec
+                T, payload.promise,
+            )
 
         wrapper.original_fn = func  # type: ignore
         return wrapper
