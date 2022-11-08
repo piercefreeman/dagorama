@@ -42,7 +42,8 @@ def test_custom_name(broker):
     # Should run this queue
     execute(
         include_queues=["test_queue"],
-        infinite_loop=False
+        infinite_loop=False,
+        catch_exceptions=False,
     )
     assert resolve(dag_instance, dag_result) == 10
 
@@ -52,7 +53,8 @@ def test_custom_name(broker):
     # Should not run this queue
     execute(
         include_queues=["test_queue_2"],
-        infinite_loop=False
+        infinite_loop=False,
+        catch_exceptions=False,
     )
     assert resolve(dag_instance, dag_result) == None
 
@@ -64,7 +66,8 @@ def test_async(broker):
     # Should run this queue
     execute(
         include_queues=["test_queue"],
-        infinite_loop=False
+        infinite_loop=False,
+        catch_exceptions=False,
     )
     assert resolve(dag_instance, dag_result) == 10
 
@@ -74,11 +77,11 @@ def test_taint_name(broker):
     dag_instance, dag_result = dag()
 
     # Should not run a tained queue by default
-    execute(infinite_loop=False)
+    execute(infinite_loop=False, catch_exceptions=False)
     assert resolve(dag_instance, dag_result) == None
 
     # Require specific allowance
-    execute(queue_tolerations=["test_taint"], infinite_loop=False)
+    execute(queue_tolerations=["test_taint"], infinite_loop=False, catch_exceptions=False)
     assert resolve(dag_instance, dag_result) == 10
 
 
@@ -88,5 +91,5 @@ def test_erroring_dags(broker, dag_class):
     dag_instance, dag_result = dag()
 
     # Should not run a tained queue by default
-    execute(infinite_loop=False)
+    execute(infinite_loop=False, catch_exceptions=True)
     assert resolve(dag_instance, dag_result) == None

@@ -60,7 +60,7 @@ def test_sample_dag_1(broker):
     dag = CustomDag()
     dag_instance, dag_result = dag(1)
 
-    execute(infinite_loop=False)
+    execute(infinite_loop=False, catch_exceptions=False)
 
     assert resolve(dag_instance, dag_result) == 9
 
@@ -73,4 +73,4 @@ def test_sample_dag_worker_code_mismatch(broker):
 
     with modify_entrypoint_signature():
         with pytest.raises(CodeMismatchException):
-            execute(infinite_loop=False)
+            execute(infinite_loop=False, catch_exceptions=False)
