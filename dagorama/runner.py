@@ -138,15 +138,27 @@ async def execute_async(
 
 
 def execute(
-    *args,
-    **kwargs,
+    exclude_queues: list | None = None,
+    include_queues: list | None = None,
+    queue_tolerations: list | None = None,
+    infinite_loop: bool = True,
+    catch_exceptions: bool = True,
 ):
     """
     Run the execute function in a synchronous manner. Assumes no runloop
     is already running or asyncio will raise an error.
 
     """
-    return run(execute_async(*args, **kwargs))
+    return run(
+        execute_async(
+            exclude_queues=exclude_queues,
+            include_queues=include_queues,
+            queue_tolerations=queue_tolerations,
+            infinite_loop=infinite_loop,
+            catch_exceptions=catch_exceptions,
+        )
+    )
+
 
 @contextmanager
 def launch_workers(n: int = 1):
