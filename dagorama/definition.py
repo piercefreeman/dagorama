@@ -103,10 +103,14 @@ def inject_instance(instance):
         if ismethod(func):
             func = getattr(func, "__func__")
 
-        @wraps(func)
-        def wrapper(*args, **kwargs):
-            return func(instance, *args, **kwargs)
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(instance, *args, **kwargs)
+        else:
+            # We only want to inject the instance into functions of this main DAG
+            return func
         return wrapper
+
     return decorator
 
 
