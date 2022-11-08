@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from pickle import loads
-from typing import cast, Any
+from typing import cast, Any, Awaitable
 from uuid import UUID, uuid4
-from inspect import isfunction, ismethod
+from inspect import isawaitable, ismethod
 from functools import wraps
 
 import grpc
@@ -12,11 +12,17 @@ import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.models.promise import DAGPromise
 
-RUN_LOOP_PROMISES: list[DAGPromise] = []
+
+LAUNCH_RETURN = tuple["DAGInstance", DAGPromise]
 
 
 class DAGDefinition(ABC):
-    def __call__(self, *args, **kwargs) -> tuple["DAGInstance", DAGPromise]:
+    def __call__(self, *args, **kwargs) -> LAUNCH_RETURN | Awaitable[LAUNCH_RETURN]:
+        """
+        If entrypoint is an async function, will return an awaitable value. If it is a sync
+        function will return immediately.
+
+        """
         # We don't have an instance ID yet for this invocation
         instance_id = generate_instance_id()
         instance = DAGInstance(instance_id, self)
@@ -24,6 +30,19 @@ class DAGDefinition(ABC):
         # We want to run the first function (entrypoint) as part of the
         # broader instance context
         result_promise = instance.entrypoint(*args, **kwargs)
+
+        if isawaitable(result_promise):
+            return self.call_async(instance, result_promise)
+        return self.call_sync(instance, result_promise)
+
+    def call_sync(self, instance: "DAGInstance", result_promise: DAGPromise):
+         # Cast as an actual result promise since this is what clients expect
+        result_promise = cast(DAGPromise, result_promise)
+
+        return instance, result_promise
+
+    async def call_async(self, instance: "DAGInstance", promise: Awaitable[DAGPromise]):
+        result_promise = await promise
 
         # Cast as an actual result promise since this is what clients expect
         result_promise = cast(DAGPromise, result_promise)

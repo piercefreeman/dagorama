@@ -1,6 +1,6 @@
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import execute
+from dagorama.runner import execute, execute_async
 from dagorama.retry import StaticRetry, ExponentialRetry
 import pytest
 
@@ -59,12 +59,13 @@ def test_custom_name(broker):
     assert resolve(dag_instance, dag_result) == None
 
 
-def test_async(broker):
+@pytest.mark.asyncio
+async def test_async(broker):
     dag = CustomAsyncDag()
-    dag_instance, dag_result = dag()
+    dag_instance, dag_result = await dag()
 
     # Should run this queue
-    execute(
+    await execute_async(
         include_queues=["test_queue"],
         infinite_loop=False,
         catch_exceptions=False,

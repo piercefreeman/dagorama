@@ -14,6 +14,8 @@ from multiprocessing import Process
 from dagorama.code_signature import calculate_function_hash
 from threading import Thread
 from traceback import format_exc
+from inspect import isawaitable
+from asyncio import run
 
 
 class CodeMismatchException(Exception):
@@ -38,7 +40,7 @@ def schedule_ping(
         sleep(interval)
 
 
-def execute(
+async def execute_async(
     exclude_queues: list | None = None,
     include_queues: list | None = None,
     queue_tolerations: list | None = None,
@@ -106,8 +108,11 @@ def execute(
             if catch_exceptions:
                 try:
                     result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+                    if isawaitable(result):
+                        result = await result
                 except Exception as e:
                     traceback = format_exc()
+                    print("Exception encountered, reporting to broker:", e, traceback)
                     context.SubmitFailure(
                         pb2.WorkFailedMessage(
                             instanceId=next_item.instanceId,
@@ -119,6 +124,8 @@ def execute(
                     continue
             else:
                 result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+                if isawaitable(result):
+                    result = await result
 
             context.SubmitWork(
                 pb2.WorkCompleteMessage(
@@ -129,6 +136,17 @@ def execute(
                 )
             )
 
+
+def execute(
+    *args,
+    **kwargs,
+):
+    """
+    Run the execute function in a synchronous manner. Assumes no runloop
+    is already running or asyncio will raise an error.
+
+    """
+    return run(execute_async(*args, **kwargs))
 
 @contextmanager
 def launch_workers(n: int = 1):
