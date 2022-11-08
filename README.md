@@ -213,6 +213,14 @@ When you update the grpc files, re-generate the client and server definition fil
 
 If you want to run unit tests you'll also need `dagorama-broker` installed. This convenience package allows the tests to dynamically spawn and tear down a broker via pytest fixtures.
 
+First, create a symbolic link to the golang broker within the python directory. This lets pip own the build logic of the executable.
+
+```
+ln -s $(pwd)/broker $(pwd)/dagorama-broker/broker
+```
+
+And the install into the current environment.
+
 ```
 poetry run pip install -e ./dagorama-broker
 ```
