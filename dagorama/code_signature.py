@@ -1,9 +1,11 @@
-import pkg_resources
-from marshal import dumps
-from typing import Callable, Any
-from inspect import getfullargspec
-from hashlib import md5
 from base64 import b64encode
+from hashlib import md5
+from inspect import getfullargspec
+from marshal import dumps
+from typing import Any, Callable
+
+import pkg_resources
+
 
 def get_explicit_dependencies():
     """

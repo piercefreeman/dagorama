@@ -1,8 +1,10 @@
+from contextlib import contextmanager
+
+import pytest
+
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import execute, CodeMismatchException
-import pytest
-from contextlib import contextmanager
+from dagorama.runner import CodeMismatchException, execute
 
 
 class CustomDag(DAGDefinition):
@@ -15,11 +17,15 @@ class CustomDag(DAGDefinition):
                           obj4 (3) --> obj6 (5)
     
     """
-    @dagorama()
+    def __init__(self):
+        self.a = 1
+
+    @dagorama().syncfn
     def entrypoint(self, number: int):
+        print("Get value", self.a)
         return self.linear_continue(number)
 
-    @dagorama()
+    @dagorama().syncfn
     def linear_continue(self, number: int):
         obj2 = number + 1
         results = [
@@ -28,12 +34,12 @@ class CustomDag(DAGDefinition):
         ]
         return self.loop_consolidate(results)
 
-    @dagorama()
+    @dagorama().syncfn
     def loop_map(self, number: int):
         # obj4 or obj5
         return number + 2
 
-    @dagorama()
+    @dagorama().syncfn
     def loop_consolidate(self, numbers: list[int]):
         # obj7
         return sum(numbers)
@@ -52,13 +58,13 @@ def modify_entrypoint_signature():
     CustomDag.entrypoint.original_fn.__name__ = old_name
 
 
-def test_sample_dag(broker):
+def test_sample_dag_1(broker):
     dag = CustomDag()
-    dag_result = dag(1)
+    dag_instance, dag_result = dag(1)
 
-    execute(infinite_loop=False)
+    execute(infinite_loop=False, catch_exceptions=False)
 
-    assert resolve(dag, dag_result) == 9
+    assert resolve(dag_instance, dag_result) == 9
 
 
 def test_sample_dag_worker_code_mismatch(broker):
@@ -69,4 +75,4 @@ def test_sample_dag_worker_code_mismatch(broker):
 
     with modify_entrypoint_signature():
         with pytest.raises(CodeMismatchException):
-            execute(infinite_loop=False)
+            execute(infinite_loop=False, catch_exceptions=False)

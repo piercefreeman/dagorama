@@ -1,6 +1,8 @@
-from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
+
 import dagorama.api.api_pb2 as pb2
+
 
 class RetryConfiguration(ABC):
     @abstractmethod

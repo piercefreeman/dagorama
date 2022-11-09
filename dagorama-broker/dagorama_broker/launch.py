@@ -1,8 +1,9 @@
 from contextlib import contextmanager
-from subprocess import Popen, run, PIPE
-from dagorama_broker.assets import get_asset_path
+from subprocess import PIPE, Popen, run
 from sysconfig import get_config_var
 from time import sleep
+
+from dagorama_broker.assets import get_asset_path
 
 
 def is_socket_bound(port) -> bool:

@@ -1,5 +1,7 @@
 from click import command, option
+
 from dagorama.runner import execute
+
 
 @command()
 @option("--exclude-queue", multiple=True)
