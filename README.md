@@ -183,7 +183,7 @@ Hacking on dagorama is encouraged. Here are some quick getting started steps.
 
 ### Installing Python Dependencies
 
-We manage our dependencies with poetry. It's not strictly speaking necessary (the pyproject.toml should install via pip in a standard virtual environment) but.
+We manage our dependencies with Poetry. It's not strictly speaking necessary (the pyproject.toml should install via pip in a standard virtual environment) but.
 
 If you don't already have Poetry, install it [here](https://python-poetry.org/docs/).
 
@@ -219,7 +219,7 @@ First, create a symbolic link to the golang broker within the python directory. 
 ln -s $(pwd)/broker $(pwd)/dagorama-broker/broker
 ```
 
-And the install into the current environment.
+And then install into the current environment.
 
 ```
 poetry run pip install -e ./dagorama-broker
