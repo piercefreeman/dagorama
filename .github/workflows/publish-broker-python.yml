@@ -1,4 +1,4 @@
-name: Release Broker
+name: Release Broker Python
 
 on:
   push:

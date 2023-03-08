@@ -22,7 +22,7 @@ func main() {
 	}
 
 	grpcServer := grpc.NewServer()
-	log.Printf("Broker service will start...")
+	log.Printf("Broker service will start on `localhost:%d`...", *port)
 	pb.RegisterDagoramaServer(grpcServer, NewBrokerServer())
 	grpcServer.Serve(conn)
 }
