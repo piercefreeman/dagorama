@@ -5,6 +5,7 @@ from inspect import isawaitable, ismethod
 from pickle import loads
 from typing import Any, Awaitable, cast
 from uuid import UUID, uuid4
+from os import getenv
 
 import grpc
 
@@ -78,9 +79,11 @@ class DAGInstance:
 
 @contextmanager
 def dagorama_context():
-    # TODO: Get global context otherwise creates it
+    host = getenv("DAGORAMA_HOST", "localhost")
+    port = getenv("DAGORAMA_PORT", "50051")
 
-    with grpc.insecure_channel("localhost:50051") as channel:
+    # TODO: Get global context otherwise creates it
+    with grpc.insecure_channel(f"{host}:{port}") as channel:
         yield pb2_grpc.DagoramaStub(channel)
 
 

@@ -165,6 +165,11 @@ To launch a worker function, install the python package in your virtualenv and r
 worker [--include-queue {queue}] [--exclude-queue {queue}] [--toleration {toleration}]
 ```
 
+This worker application supports the following env variables:
+
+`DAGORAMA_HOST` - (optional) Host for the dagorama broker
+`DAGORAMA_PORT` - (optional) Port for the dagorama broker
+
 ## Production Deployment (WIP)
 
 Outside of local testing, you probably won't want to run the workers on your same machine. Instead you'll want to distribute them across multiple machines. In this setup we recommend:
