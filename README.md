@@ -94,8 +94,8 @@ class MyTask(DAGDefinition):
 def main():
     with launch_broker():
         start = time()
-        definition = MyTask()
-        instance, promise = task()
+        task_definition = MyTask()
+        instance, promise = task_definition()
 
         with launch_workers(4):
             sleep(3)
