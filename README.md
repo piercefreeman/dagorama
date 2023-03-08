@@ -73,7 +73,7 @@ from collections import Counter
 from time import sleep, time
 
 class MyTask(DAGDefinition):
-    @dagorama()
+    @dagorama().syncfn
     def entrypoint(self):
         results = [
             self.perform_work(i)
@@ -82,12 +82,12 @@ class MyTask(DAGDefinition):
 
         return self.rollup_statuses(results)
 
-    @dagorama()
+    @dagorama().syncfn
     def perform_work(self, identifier: int) -> int:
         sleep(2)
         return identifier // 2
 
-    @dagorama()
+    @dagorama().syncfn
     def rollup_statuses(self, responses: list[int]):
         return Counter([status for status in responses])
 
@@ -136,11 +136,11 @@ $ diff samples/test1.py samples/test2.py
 < class MyTask:
 ---
 > class MyTask(DAGDefinition):
->     @dagorama()
+>     @dagorama().syncfn
 9a11
->     @dagorama()
+>     @dagorama().syncfn
 13a16
->     @dagorama()
+>     @dagorama().syncfn
 ```
 
 This is the core design goal of dagorama: write vanilla python and scale easily.
@@ -153,7 +153,7 @@ Each group of logical code that you want to flow to one another should be contai
 
 The dagorama broker will ensure that earlier DAG instances will complete before ones that are invoked later. The prioritization scheme is FIFO on the DAG instantiation order. This is useful in situations where you want to decrease the latency from start of processing to DAG completion for use in near-realtime logic.
 
-Each function that you want to execute on a separate machine should be wrapped in a `@dagorama` decorator. Calls to this function will be added to the computational graph and distributed appropriately. Class functions that aren't decorated will be run inline to the current executor.
+Each function that you want to execute on a separate machine should be wrapped in a `@dagorama` decorator. Calls to this function will be added to the computational graph and distributed appropriately. Class functions that aren't decorated will be run inline to the current executor. For sync worker functions decorate your code with `@dagorama().syncfn` and for async functions, `@dagorama().asyncfn`.
 
 A `@dagorama` decorated function will _look_ like it returns the typehinted values to static analyzers like mypy. This allows you to write more interpretable code by passing around logical values. In reality, however, @dagorama functions will return a `DAGPromise` at runtime. This DAGPromise is meaningless - it doesn't have a value yet, since it hasn't yet been passed to a runner. These response values should only be passed to other `@dagorama` decorated functions as function arguments. When this is done workers will only execute that function once all its dependencies have been realized.
 
@@ -172,6 +172,14 @@ Outside of local testing, you probably won't want to run the workers on your sam
 - 1 Broker: Go executable running on a VM, kubernetes pod, or within docker. Backed by a persistent database to resume state in case of runtime interruptions.
 - N Workers. The devices that perform the computation. Can be the same physical hardware configurations or different depending on usecase.
 - M Spawners. The service that will first instantiate the DAG. This is typically the end application like a server backend.
+
+## Docker
+
+We package the broker as a docker image for convenience. This image is based on an alpine distribution and just contains the broker executable, so it weighs in under 10MB.
+
+```
+docker pull piercefreeman/dagorama-broker:latest
+```
 
 ## Typehinting
 
