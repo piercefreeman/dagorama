@@ -1,7 +1,9 @@
-name: Publish broker-docker
+name: Publish Broker Docker
 
 on:
-  push
+  push:
+    tags:
+      - "*"
 
 env:
   BUILD_PATH: .
