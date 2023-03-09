@@ -16,6 +16,7 @@ from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
+from dagorama.logging import LOGGER, get_default_console_width
 
 
 class CodeMismatchException(Exception):
@@ -70,7 +71,7 @@ async def execute_async(
                 if e.details() == "no work available":
                     if not infinite_loop:
                         return
-                    print("No work available, polling in 1s...")
+                    LOGGER.debug("No work available, polling in 1s...")
                     sleep(1)
                     continue
                 else:
@@ -84,24 +85,23 @@ async def execute_async(
             }
 
             # TODO: Add actual resolution
-            print("------")
-            print(next_item)
-            print(arguments)
-            print("resolved values", resolved_values)
             resolved_args = resolve_promises(arguments.calltime_args, resolved_values)
             resolved_kwargs = resolve_promises(arguments.calltime_kwargs, resolved_values)
-            print("Resolved", resolved_args)
-            print("Resolved", resolved_kwargs)
 
             # Since this function was queued as part of the worker, we can assume that it will
             # be a wrapped @dagorama function - it will therefore be a standard callable without
             # async since it takes care of the client-side async logic internally.
             resolved_fn = name_to_function(next_item.functionName, next_item.instanceId)
-            print("RESOLVED FN", resolved_fn)
 
-            # Ensure that we have the correct local version of the function
-            print("FOUND FN", resolved_fn)
+            console_width = get_default_console_width()
+            LOGGER.debug("-" * console_width)
+            LOGGER.debug(f"Executing {next_item} with {arguments}")
+            LOGGER.debug(f"Resolved values: {resolved_values} | {resolved_args} | {resolved_kwargs}")
+            LOGGER.debug(f"Resolved fn: {resolved_fn}")
+            LOGGER.debug("-" * console_width)
+
             #print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
+            # Ensure that we have the correct local version of the function
             if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
                 raise CodeMismatchException()
 
@@ -112,7 +112,7 @@ async def execute_async(
                         result = await result
                 except Exception as e:
                     traceback = format_exc()
-                    print("Exception encountered, reporting to broker:", e, traceback)
+                    LOGGER.warning(f"Exception encountered, reporting to broker: {e}\n{traceback}")
                     context.SubmitFailure(
                         pb2.WorkFailedMessage(
                             instanceId=next_item.instanceId,
