@@ -16,14 +16,16 @@ func main() {
 		port = flag.Int("port", 50051, "The port to listen on")
 	)
 
+	serveAddress := fmt.Sprintf("%s:%d", *host, *port)
+
 	flag.Parse()
-	conn, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
+	conn, err := net.Listen("tcp", serveAddress)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
 	grpcServer := grpc.NewServer()
-	log.Printf("Broker service will start on `localhost:%d`...", *port)
+	log.Printf("Broker service will start on `%s`...", serveAddress)
 	pb.RegisterDagoramaServer(grpcServer, NewBrokerServer())
 	grpcServer.Serve(conn)
 }
