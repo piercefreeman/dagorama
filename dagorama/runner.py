@@ -41,7 +41,7 @@ def schedule_ping(
         sleep(interval)
 
 
-async def execute_async(
+async def execute_worker_async(
     exclude_queues: list | None = None,
     include_queues: list | None = None,
     queue_tolerations: list | None = None,
@@ -137,7 +137,7 @@ async def execute_async(
             )
 
 
-def execute(
+def execute_worker(
     exclude_queues: list | None = None,
     include_queues: list | None = None,
     queue_tolerations: list | None = None,
@@ -150,7 +150,7 @@ def execute(
 
     """
     return run(
-        execute_async(
+        execute_worker_async(
             exclude_queues=exclude_queues,
             include_queues=include_queues,
             queue_tolerations=queue_tolerations,
@@ -161,19 +161,39 @@ def execute(
 
 
 @contextmanager
-def launch_workers(n: int = 1):
+def launch_workers(
+    n: int = 1,
+    exit_on_completion: bool = False,
+):
     """
     Helper function to spawn multiple workers without having to launch
     them in separate shell sessions.
 
     Mostly intended for unit testing.
 
+    :param n: The number of workers to launch.
+
+    :param exit_on_completion: Exit the worker processes once the current queues are drained
+        of tasks. If you're using this ensure that items are placed in the queue before
+        this worker is launched.
+
     """
-    workers = [Process(target=execute) for _ in range(n)]
+    if n == 0:
+        raise ValueError("Must launch at least one worker")
+
+    workers = [
+        Process(
+            target=execute_worker,
+            kwargs=dict(
+                infinite_loop=not exit_on_completion
+            )
+        )
+        for _ in range(n)
+    ]
     for worker in workers:
         worker.start()
 
-    yield
+    yield workers
 
     for worker in workers:
         worker.terminate()

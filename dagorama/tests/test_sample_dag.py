@@ -4,7 +4,7 @@ import pytest
 
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import CodeMismatchException, execute
+from dagorama.runner import CodeMismatchException, execute_worker
 
 
 class CustomDag(DAGDefinition):
@@ -62,7 +62,7 @@ def test_sample_dag_1(broker):
     dag = CustomDag()
     dag_instance, dag_result = dag(1)
 
-    execute(infinite_loop=False, catch_exceptions=False)
+    execute_worker(infinite_loop=False, catch_exceptions=False)
 
     assert resolve(dag_instance, dag_result) == 9
 
@@ -75,4 +75,4 @@ def test_sample_dag_worker_code_mismatch(broker):
 
     with modify_entrypoint_signature():
         with pytest.raises(CodeMismatchException):
-            execute(infinite_loop=False, catch_exceptions=False)
+            execute_worker(infinite_loop=False, catch_exceptions=False)
