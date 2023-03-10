@@ -97,8 +97,10 @@ def main():
         task_definition = MyTask()
         instance, promise = task_definition()
 
-        with launch_workers(4):
-            sleep(3)
+        with launch_workers(4, exit_on_completion=True) as workers:
+            # Wait for each to quit
+            for worker in workers:
+                worker.join()
         response = resolve(instance, promise)
         end = time() 
 

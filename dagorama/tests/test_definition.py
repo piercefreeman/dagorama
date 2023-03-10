@@ -1,7 +1,7 @@
 from dagorama.decorators import dagorama
 from dagorama.definition import (DAGDefinition, DAGInstance,
                                  generate_instance_id)
-from dagorama.runner import execute
+from dagorama.runner import execute_worker
 
 
 class SampleDefinition(DAGDefinition):
@@ -23,4 +23,4 @@ def test_instance_injection(broker):
     instance = DAGInstance(generate_instance_id(), definition)
     instance.entrypoint()
 
-    execute(infinite_loop=False, catch_exceptions=False)
+    execute_worker(infinite_loop=False, catch_exceptions=False)
