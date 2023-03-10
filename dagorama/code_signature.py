@@ -6,6 +6,8 @@ from typing import Any, Callable
 
 import pkg_resources
 
+from dagorama.logging import LOGGER
+
 
 def get_explicit_dependencies():
     """
@@ -27,15 +29,15 @@ def calculate_function_hash(fn: Callable[..., Any], include_package_versions: bo
 
     """
     argspec = getfullargspec(fn)
-    runtime_code_raw = dumps(
-        dict(
-            name=fn.__name__,
-            code=fn.__code__.co_code,
-            constants=fn.__code__.co_consts,
-            args=argspec.args,
-            kwargs=argspec.kwonlyargs,
-        )
+    fn_definition = dict(
+        name=fn.__name__,
+        code=fn.__code__.co_code,
+        constants=fn.__code__.co_consts,
+        args=argspec.args,
+        kwargs=argspec.kwonlyargs,
     )
+    runtime_code_raw = dumps(fn_definition)
+    LOGGER.debug(f"Hash Function: {fn_definition}")
 
     if include_package_versions:
         dependencies = get_explicit_dependencies()

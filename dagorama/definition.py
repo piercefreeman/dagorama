@@ -2,10 +2,10 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import wraps
 from inspect import isawaitable, ismethod
+from os import getenv
 from pickle import loads
 from typing import Any, Awaitable, cast
 from uuid import UUID, uuid4
-from os import getenv
 
 import grpc
 

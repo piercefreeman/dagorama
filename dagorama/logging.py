@@ -1,12 +1,29 @@
-from logging import getLogger, basicConfig
+from logging import (CRITICAL, DEBUG, ERROR, INFO, WARNING, basicConfig,
+                     getLogger)
 from os import getenv
 
-LOGGER = getLogger("Dagorama")
+
+def get_log_level():
+   level = getenv("DAGORAMA_LOG_LEVEL", "WARNING")
+   if level == "DEBUG":
+      return DEBUG
+   elif level == "INFO":
+      return INFO
+   elif level == "WARNING":
+      return WARNING
+   elif level == "ERROR":
+      return ERROR
+   elif level == "CRITICAL":
+      return CRITICAL
+   raise ValueError(f"Unknown log level: {level}")
+
 
 basicConfig(
-    level=getenv("DAGORAMA_LOG_LEVEL", "WARNING"),
+    level=get_log_level(),
     format="{asctime} - {name} - [{levelname}] - {message}",
 )
+
+LOGGER = getLogger("Dagorama")
 
 def get_default_console_width(default_value: int = 80):
    try:
