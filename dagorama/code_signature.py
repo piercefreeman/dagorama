@@ -37,7 +37,7 @@ def calculate_function_hash(fn: Callable[..., Any], include_package_versions: bo
         kwargs=argspec.kwonlyargs,
     )
     runtime_code_raw = dumps(fn_definition)
-    LOGGER.debug(f"Hash Function: {fn_definition}")
+    LOGGER.debug(f"Hash: Definition: {fn_definition}")
 
     if include_package_versions:
         dependencies = get_explicit_dependencies()
@@ -45,4 +45,7 @@ def calculate_function_hash(fn: Callable[..., Any], include_package_versions: bo
 
         runtime_code_raw += dumps(dependencies)
 
-    return b64encode(md5(runtime_code_raw).digest()).decode()
+    hash_value = b64encode(md5(runtime_code_raw).digest()).decode()
+    LOGGER.debug(f"Hash: Value: {hash_value} (include_package_versions: {include_package_versions})")
+
+    return hash_value

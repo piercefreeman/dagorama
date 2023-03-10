@@ -4,6 +4,12 @@ from os import getenv
 
 
 def get_log_level():
+   """
+   More explicit implementation to `logging.getLevelName`. We would
+   rather raise an error if the log level is not recognized than default to the
+   string value that getLevelName does.
+
+   """
    level = getenv("DAGORAMA_LOG_LEVEL", "WARNING")
    if level == "DEBUG":
       return DEBUG

@@ -1,12 +1,13 @@
 package main
 
 import (
-	"log"
 	"math"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type Worker struct {
@@ -263,9 +264,20 @@ type Broker struct {
 	// Require a ping within this interval or a worker will be considered unhealthy
 	// and removed from the pool, seconds
 	requiredPingInterval int
+
+	logger *zap.Logger
 }
 
 func NewBroker() *Broker {
+	// If we're set to debug, allocate a debug session
+	// Otherwise default to production
+	var logger *zap.Logger
+	if os.Getenv("DAGORAMA_ENVIRONMENT") == "development" {
+		logger, _ = zap.NewDevelopment()
+	} else {
+		logger, _ = zap.NewProduction()
+	}
+
 	return &Broker{
 		taskQueuesLock:           sync.Mutex{},
 		taskQueues:               make(map[string]*HeapQueue),
@@ -276,6 +288,7 @@ func NewBroker() *Broker {
 		workerLock:               sync.RWMutex{},
 		workers:                  make(map[string]*Worker),
 		requiredPingInterval:     60,
+		logger:                   logger,
 	}
 }
 
@@ -336,7 +349,7 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	/*
 	 * Enqueue a DAG node into the appropriate queue
 	 */
-	log.Printf("Enqueueing node %s", node.identifier)
+	broker.logger.Info("Enqueueing node", zap.String("identifier", node.identifier))
 	broker.taskQueuesLock.Lock()
 	defer broker.taskQueuesLock.Unlock()
 
@@ -387,7 +400,7 @@ func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
 	minimumQueueName := ""
 
 	allowedQueues := broker.getAllowedQueues(worker)
-	log.Printf("Allowed queues: %v", allowedQueues)
+	broker.logger.Debug("Pop next node", zap.String("worker", worker.identifier), zap.Strings("allowedQueues", allowedQueues))
 
 	for queueName, queue := range broker.taskQueues {
 		// Only support the given queues
@@ -434,7 +447,7 @@ func (broker *Broker) GarbageCollectWorkers() {
 func (broker *Broker) GarbageCollectWorkersExecute() {
 	for workerID, worker := range broker.workers {
 		if worker.lastPing < time.Now().Unix()-int64(broker.requiredPingInterval) {
-			log.Printf("Garbage collecting worker %s", workerID)
+			broker.logger.Info("Garbage collecting worker", zap.String("identifier", workerID))
 
 			// Free the currently processing nodes back into the pool
 			for _, node := range worker.claimedWork {
