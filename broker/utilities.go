@@ -20,3 +20,10 @@ func contains[T comparable](s []T, e T) bool {
 	}
 	return false
 }
+
+func TernaryIf[T any](condition bool, trueValue T, falseValue T) T {
+	if condition {
+		return trueValue
+	}
+	return falseValue
+}

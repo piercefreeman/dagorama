@@ -2,7 +2,6 @@ package main
 
 import (
 	pb "dagorama/api"
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -11,13 +10,9 @@ import (
 )
 
 func main() {
-	var (
-		host = flag.String("host", "localhost", "The host to mount the broker")
-		port = flag.Int("port", 50051, "The port to listen on")
-	)
-	flag.Parse()
+	config := loadConfig()
 
-	serveAddress := fmt.Sprintf("%s:%d", *host, *port)
+	serveAddress := fmt.Sprintf("%s:%d", config.host, config.port)
 
 	conn, err := net.Listen("tcp", serveAddress)
 	if err != nil {

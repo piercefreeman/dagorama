@@ -2,11 +2,11 @@ package main
 
 import (
 	"math"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 	"go.uber.org/zap"
 )
 
@@ -39,208 +39,6 @@ func (worker *Worker) Ping() {
 	worker.lastPing = time.Now().Unix()
 }
 
-type DAGFailure struct {
-	/*
-	 * Record client-side errors and exceptions
-	 */
-	traceback string
-}
-
-type DAGNode struct {
-	identifier   string
-	functionName string
-
-	queueName string
-	taintName string
-
-	// Hash of function code logic, used by workers to determine if their local
-	// version of the code is the same as the version that was queued originally
-	functionHash string
-
-	// The arguments array should contain all arguments that are passed to this node, including
-	// client side
-	arguments []byte
-
-	// src values of the (src, dst) that end at this dst
-	sources []*DAGNode
-
-	// dst of the (src, dst) edges that start at this src
-	destinations []*DAGNode
-
-	// Once we have determined the value for the DAG (ie. the return value
-	// of the actual function), populate the next DAGs with the value
-	// Might be null even for completed objects if no return value is specified
-	resolvedValue []byte
-
-	// True if this node has resolved its execution
-	completed bool
-
-	// The instance that spawned this DAG node
-	instance *DAGInstance
-
-	// Worker that is currently executing this node
-	dequeueTimestamp int64
-	dequeueWorker    *Worker
-
-	// Store failures on past invocations of this node
-	retryPolicy  *RetryPolicy
-	failures     []*DAGFailure
-	failuresLock sync.RWMutex
-}
-
-func (node *DAGNode) ExecutionDidResolve(value []byte) {
-	/*
-	 * Called by clients when we have finalized a value for this DAG Node
-	 */
-	// Handle resolution
-	node.resolvedValue = value
-	node.completed = true
-
-	// Release the worker lock from the element
-	node.ReleaseWorkerLock()
-
-	// Dequeue destinations
-	// If all are valid, enqueue into the actual DAG queue
-	for _, destination := range node.destinations {
-		destination.DependencyDidResolve()
-	}
-}
-
-func (node *DAGNode) ExecutionDidFail(traceback string) {
-	failure := DAGFailure{
-		traceback: traceback,
-	}
-
-	// Release the worker lock
-	node.ReleaseWorkerLock()
-
-	// Record the failure as part of this node
-	node.failuresLock.Lock()
-	defer node.failuresLock.Unlock()
-	node.failures = append(node.failures, &failure)
-
-	// Requeue back into the DAG with the node's backoff policy
-	node.instance.broker.BackoffNode(node)
-}
-
-func (node *DAGNode) ReleaseWorkerLock() {
-	/*
-	 * Releases the worker's sole control over this element
-	 * but won't yet requeue the element
-	 */
-	worker := node.dequeueWorker
-	if worker != nil {
-		worker.claimedWorkLock.Lock()
-		defer worker.claimedWorkLock.Unlock()
-
-		worker.claimedWork = filterSlice(worker.claimedWork, func(compareNode *DAGNode) bool {
-			return compareNode.identifier != node.identifier
-		})
-	}
-
-	// Release the worker lock from the note
-	node.dequeueTimestamp = 0
-	node.dequeueWorker = nil
-}
-
-func (node *DAGNode) DependencyDidResolve() {
-	/*
-	 * Check if all dependencies have resolved
-	 * If so, enqueue into the DAG queue
-	 */
-	dependenciesComplete := true
-	for _, dependency := range node.sources {
-		if !dependency.completed {
-			dependenciesComplete = false
-			break
-		}
-	}
-
-	if dependenciesComplete {
-		// Add to queue
-		node.instance.broker.EnqueueNode(node)
-	}
-}
-
-type DAGInstance struct {
-	/*
-	 * One instance of a DAG. The result of an client-side `entrypoint` that kicks
-	 * off the rest of the job logic.
-	 */
-	// DAGs are prioritized based on the order in which they were inserted into
-	// the queue. This becomes the priority order added to the queue DAGs.
-	identifier string
-	order      int
-
-	// ID -> DAGNode
-	// Will keep nodes retained until we cleanup the instance
-	nodeLock sync.RWMutex
-	nodes    map[string]*DAGNode
-
-	broker *Broker
-}
-
-func (instance *DAGInstance) NewNode(
-	identifier string,
-	functionName string,
-	functionHash string,
-	queueName string,
-	taintName string,
-	arguments []byte,
-	sources []*DAGNode,
-	retryPolicy *RetryPolicy,
-) *DAGNode {
-	node := &DAGNode{
-		identifier:   identifier,
-		functionName: functionName,
-		functionHash: functionHash,
-		queueName:    queueName,
-		taintName:    taintName,
-		arguments:    arguments,
-		sources:      sources,
-		destinations: make([]*DAGNode, 0),
-		completed:    false,
-		instance:     instance,
-		failures:     make([]*DAGFailure, 0),
-		failuresLock: sync.RWMutex{},
-		retryPolicy:  retryPolicy,
-	}
-
-	instance.nodeLock.Lock()
-	defer instance.nodeLock.Unlock()
-
-	instance.nodes[identifier] = node
-
-	// Make sure we create the back-link
-	for _, source := range sources {
-		source.destinations = append(source.destinations, node)
-	}
-
-	// Determine whether this node is ready to be executed
-	// This is the same logic as the notification that we receive when
-	// an actual dependency is completed, so we can reuse the same
-	// notification function
-	node.DependencyDidResolve()
-
-	return node
-}
-
-func (instance *DAGInstance) GetNode(identifier string) *DAGNode {
-	instance.nodeLock.RLock()
-	defer instance.nodeLock.RUnlock()
-
-	return instance.nodes[identifier]
-}
-
-func (instance *DAGInstance) release() {
-	/*
-	 * Release cached values associated with DAG
-	 * Also destroy the DAGNode objects
-	 * TODO: Execute automatically under some conditions, like all DAG stages
-	 * completed or similar.
-	 */
-}
-
 type Broker struct {
 	// Mapping of function name to queue
 	// Once an item is added to the queue it should be ready for execution
@@ -249,7 +47,7 @@ type Broker struct {
 
 	// Unscheduled DAGs aren't yet ready for queuing because we are still waiting
 	// for their backoff intervals. Unlike in the regular task queues these objects
-	// are parameterized by their timestamp rather than
+	// are parameterized by their timestamp rather than their desired execution order
 	futureScheduledNodesLock sync.RWMutex
 	futureScheduledNodes     *HeapQueue
 
@@ -266,16 +64,32 @@ type Broker struct {
 	requiredPingInterval int
 
 	logger *zap.Logger
+
+	// Only set if we're using a persistent storage backend
+	database *bun.DB
 }
 
 func NewBroker() *Broker {
+	config := loadConfig()
+
 	// If we're set to debug, allocate a debug session
 	// Otherwise default to production
 	var logger *zap.Logger
-	if os.Getenv("DAGORAMA_ENVIRONMENT") == "development" {
+	if config.environment == "development" {
 		logger, _ = zap.NewDevelopment()
 	} else {
 		logger, _ = zap.NewProduction()
+	}
+
+	var database *bun.DB = nil
+	if config.storage.enabled {
+		database = NewDatabase(
+			config.storage.host,
+			config.storage.port,
+			config.storage.username,
+			config.storage.password,
+			config.storage.database,
+		)
 	}
 
 	return &Broker{
@@ -289,6 +103,7 @@ func NewBroker() *Broker {
 		workers:                  make(map[string]*Worker),
 		requiredPingInterval:     60,
 		logger:                   logger,
+		database:                 database,
 	}
 }
 
@@ -327,6 +142,11 @@ func (broker *Broker) NewInstance(identifier string) *DAGInstance {
 		broker:     broker,
 	}
 	broker.instances[identifier] = instance
+
+	// Add to the database
+	if broker.database != nil {
+		instance.InsertIntoDatabase(broker.database)
+	}
 
 	return instance
 }
@@ -367,7 +187,13 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	}
 
 	// Add to queue
-	broker.taskQueues[node.queueName].PushItem(node, int64(node.instance.order))
+	nodePriority := int64(node.instance.order)
+	broker.taskQueues[node.queueName].PushItem(node, nodePriority)
+
+	// Save if relevant
+	if broker.database != nil {
+		node.UpsertIntoDatabase(broker.database, nodePriority)
+	}
 }
 
 func (broker *Broker) BackoffNode(node *DAGNode) {
@@ -387,7 +213,13 @@ func (broker *Broker) BackoffNode(node *DAGNode) {
 		// Have exhausted retry attempts, shouldn't queue back
 		return
 	}
-	broker.futureScheduledNodes.PushItem(node, time.Now().UnixMilli()+int64(backoffInterval))
+	nodePriority := time.Now().UnixMilli() + int64(backoffInterval)
+	broker.futureScheduledNodes.PushItem(node, nodePriority)
+
+	// Save if relevant
+	if broker.database != nil {
+		node.UpsertIntoDatabase(broker.database, nodePriority)
+	}
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
