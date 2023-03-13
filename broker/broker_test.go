@@ -249,6 +249,51 @@ func TestQueueFutureScheduledExecute(t *testing.T) {
 }
 
 func TestQueueFutureScheduledPersistentExecute(t *testing.T) {
-	// TODO
+	clearTestDatabase()
+	config := getTestPersistentConfig()
 
+	{
+		broker := NewBroker(config)
+		worker := broker.NewWorker([]string{}, []string{}, []string{})
+
+		// Create a node that is scheduled to run in the future
+		instance := broker.NewInstance("1")
+
+		// We should try again almost instantly (in 1 second)
+		retryPolicy := NewStaticRetryPolicy(1, 1)
+		instance.NewNode("A", "Entrypoint", "hash(1)", "queue_1", "", []byte{}, []*DAGNode{}, retryPolicy)
+
+		// Dequeue from the main queue, should be the only one in the queue
+		node := broker.PopNextNode(worker)
+
+		// Indicate that the node has failed for some reason so it should be placed into the
+		node.ExecutionDidFail("")
+
+		if broker.futureScheduledNodes.Length() != 1 {
+			t.Fatalf("Expected 1 future scheduled node, got %d", broker.futureScheduledNodes.Length())
+		}
+
+		if broker.taskQueues["queue_1"].Length() != 0 {
+			t.Fatalf("Expected no length in queue_1, got %d", broker.taskQueues["queue_1"].Length())
+		}
+	}
+
+	// Wait for enough time to let our backoff expire
+	time.Sleep(2 * time.Second)
+
+	{
+		broker := NewBroker(config)
+
+		// Run the garbage collection, which should move the node to the main queue
+		broker.QueueFutureScheduledExecute()
+
+		// At this point it should be back in the main queue
+		if broker.futureScheduledNodes.Length() != 0 {
+			t.Fatalf("Expected no future scheduled nodes, got %d", broker.futureScheduledNodes.Length())
+		}
+
+		if broker.taskQueues["queue_1"].Length() != 1 {
+			t.Fatalf("Expected node to be back in the queue, got %d", broker.taskQueues["queue_1"].Length())
+		}
+	}
 }

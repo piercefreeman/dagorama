@@ -179,29 +179,42 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	 * Enqueue a DAG node into the appropriate queue
 	 */
 	broker.logger.Info("Enqueueing node", zap.String("identifier", node.identifier))
-	broker.taskQueuesLock.Lock()
-	defer broker.taskQueuesLock.Unlock()
 
-	// Create the queue if it doesn't exist
-	if _, ok := broker.taskQueues[node.queueName]; !ok {
-		newQueue := NewHeapQueue()
-		newQueue.taint = node.taintName
-		broker.taskQueues[node.queueName] = newQueue
+	// Determine if we should enqueue to the task queues or to the future scheduled queue
+	if node.nextRetryAvailable > -1 && time.Now().UnixMilli() < node.nextRetryAvailable {
+		broker.futureScheduledNodesLock.Lock()
+		defer broker.futureScheduledNodesLock.Unlock()
 
-		// Clear the cache of allowed worker queues since we have just added
-		// a new one that will invalidate the cache
-		for _, worker := range broker.workers {
-			worker.allowedQueues = []string{}
+		broker.futureScheduledNodes.PushItem(node, node.nextRetryAvailable)
+	} else {
+		broker.taskQueuesLock.Lock()
+		defer broker.taskQueuesLock.Unlock()
+
+		// Create the queue if it doesn't exist
+		if _, ok := broker.taskQueues[node.queueName]; !ok {
+			newQueue := NewHeapQueue()
+			newQueue.taint = node.taintName
+			broker.taskQueues[node.queueName] = newQueue
+
+			// Clear the cache of allowed worker queues since we have just added
+			// a new one that will invalidate the cache
+			for _, worker := range broker.workers {
+				worker.allowedQueues = []string{}
+			}
 		}
-	}
 
-	// Add to queue
-	nodePriority := int64(node.instance.order)
-	broker.taskQueues[node.queueName].PushItem(node, nodePriority)
+		// We should have a blank backoff interval since the item is ready
+		// to be queued in the active queues
+		node.nextRetryAvailable = -1
+
+		// Add to queue
+		nodePriority := int64(node.instance.order)
+		broker.taskQueues[node.queueName].PushItem(node, nodePriority)
+	}
 
 	// Save if relevant
 	if broker.database != nil {
-		node.UpsertIntoDatabase(broker.database, nodePriority)
+		node.UpsertIntoDatabase(broker.database)
 	}
 }
 
@@ -214,21 +227,15 @@ func (broker *Broker) BackoffNode(node *DAGNode) {
 		return
 	}
 
-	broker.futureScheduledNodesLock.Lock()
-	defer broker.futureScheduledNodesLock.Unlock()
-
 	backoffInterval := node.retryPolicy.getWaitIntervalMilliseconds()
 	if backoffInterval == -1 {
 		// Have exhausted retry attempts, shouldn't queue back
 		return
 	}
-	nodePriority := time.Now().UnixMilli() + int64(backoffInterval)
-	broker.futureScheduledNodes.PushItem(node, nodePriority)
+	nextRetryAvailable := time.Now().UnixMilli() + int64(backoffInterval)
+	node.nextRetryAvailable = nextRetryAvailable
 
-	// Save if relevant
-	if broker.database != nil {
-		node.UpsertIntoDatabase(broker.database, nodePriority)
-	}
+	broker.EnqueueNode(node)
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {

@@ -36,19 +36,20 @@ func (instance *DAGInstance) NewNode(
 	retryPolicy *RetryPolicy,
 ) *DAGNode {
 	node := &DAGNode{
-		identifier:   identifier,
-		functionName: functionName,
-		functionHash: functionHash,
-		queueName:    queueName,
-		taintName:    taintName,
-		arguments:    arguments,
-		sources:      sources,
-		destinations: make([]*DAGNode, 0),
-		completed:    false,
-		instance:     instance,
-		failures:     make([]*DAGFailure, 0),
-		failuresLock: sync.RWMutex{},
-		retryPolicy:  retryPolicy,
+		identifier:         identifier,
+		functionName:       functionName,
+		functionHash:       functionHash,
+		queueName:          queueName,
+		taintName:          taintName,
+		arguments:          arguments,
+		sources:            sources,
+		destinations:       make([]*DAGNode, 0),
+		completed:          false,
+		instance:           instance,
+		failures:           make([]*DAGFailure, 0),
+		failuresLock:       sync.RWMutex{},
+		retryPolicy:        retryPolicy,
+		nextRetryAvailable: -1,
 	}
 
 	instance.nodeLock.Lock()

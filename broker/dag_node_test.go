@@ -29,7 +29,7 @@ func TestUpsertNode(t *testing.T) {
 	}
 
 	// Test the insert
-	err := node.UpsertIntoDatabase(db, 0)
+	err := node.UpsertIntoDatabase(db)
 
 	if err != nil {
 		t.Fatalf("Expected no error on upsert, got %s", err)
@@ -56,7 +56,7 @@ func TestUpsertNode(t *testing.T) {
 
 	// Update the node
 	node.functionName = nodeUpdatedFunction
-	node.UpsertIntoDatabase(db, 0)
+	node.UpsertIntoDatabase(db)
 
 	// Make sure the updated data has been saved into the database
 	// Make sure it has saved into the database

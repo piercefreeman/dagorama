@@ -50,9 +50,7 @@ func TestNewDatabase(t *testing.T) {
 }
 
 func TestGetAutoUpdatingFields(t *testing.T) {
-	obj := PersistentDAGNode{
-		Priority: 1,
-	}
+	obj := PersistentDAGNode{}
 
 	// Test a sample of fields known to contain the auto-updating flag
 	updatingFields := getAutoUpdatingFields(&obj)

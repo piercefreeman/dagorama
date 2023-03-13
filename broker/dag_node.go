@@ -49,6 +49,10 @@ type DAGNode struct {
 	dequeueTimestamp int64
 	dequeueWorker    *Worker
 
+	// When the next retry is available
+	// -1 if not relevant
+	nextRetryAvailable int64
+
 	// Store failures on past invocations of this node
 	retryPolicy  *RetryPolicy
 	failures     []*DAGFailure
@@ -73,7 +77,9 @@ func (node *DAGNode) ExecutionDidResolve(value []byte) {
 	}
 
 	// Update the database
-	node.UpsertIntoDatabase(node.instance.broker.database, 0)
+	if node.instance.broker.database != nil {
+		node.UpsertIntoDatabase(node.instance.broker.database)
+	}
 }
 
 func (node *DAGNode) ExecutionDidFail(traceback string) {
@@ -91,6 +97,11 @@ func (node *DAGNode) ExecutionDidFail(traceback string) {
 
 	// Requeue back into the DAG with the node's backoff policy
 	node.instance.broker.BackoffNode(node)
+
+	// Update the database
+	if node.instance.broker.database != nil {
+		node.UpsertIntoDatabase(node.instance.broker.database)
+	}
 }
 
 func (node *DAGNode) ReleaseWorkerLock() {
@@ -132,16 +143,11 @@ func (node *DAGNode) DependencyDidResolve() {
 	}
 }
 
-func (node *DAGNode) UpsertIntoDatabase(
-	db *bun.DB,
-	priority int64,
-) error {
+func (node *DAGNode) UpsertIntoDatabase(db *bun.DB) error {
 	/*
 	 * Upsert the node into the database
 	 */
 	persistentNode := PersistentDAGNode{
-		Priority: priority,
-
 		Identifier:   node.identifier,
 		FunctionName: node.functionName,
 		QueueName:    node.queueName,

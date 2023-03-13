@@ -39,9 +39,6 @@ type PersistentDAGNode struct {
 	 */
 	bun.BaseModel `bun:"table:dag_node"`
 
-	// Priority queue (QueuedJob)
-	Priority int64
-
 	// DAGNode
 	Identifier             string   `bun:",pk"`
 	FunctionName           string   `dagorama_db:"auto-update"`
