@@ -1,6 +1,9 @@
 package main
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 func getTestPersistentConfig() *Config {
 	os.Setenv("DAGORAMA_STORAGE_ENABLED", "true")
@@ -13,7 +16,7 @@ func getTestPersistentConfig() *Config {
 	testStoragePassword := os.Getenv("DAGORAMA_TEST_STORAGE_PASSWORD")
 	testStorageDatabase := os.Getenv("DAGORAMA_TEST_STORAGE_DATABASE")
 
-	// Fallback to defaults
+	// Fallback to defaults separate from the standard config values
 	testStorageUsername = TernaryIf(testStorageUsername == "", "dagorama", testStorageUsername)
 	testStorageDatabase = TernaryIf(testStorageDatabase == "", "dagorama_test_db", testStorageDatabase)
 
@@ -23,12 +26,22 @@ func getTestPersistentConfig() *Config {
 	os.Setenv("DAGORAMA_STORAGE_PASSWORD", testStoragePassword)
 	os.Setenv("DAGORAMA_STORAGE_DATABASE", testStorageDatabase)
 
-	return loadConfig()
+	config := loadConfig()
+
+	// Print the config values for debugging
+	fmt.Printf("Test Config: %#v\n", config)
+
+	return config
 }
 
 func getTestMemoryConfig() *Config {
 	os.Setenv("DAGORAMA_ENVIRONMENT", "development")
 	os.Setenv("DAGORAMA_STORAGE_ENABLED", "false")
 
-	return loadConfig()
+	config := loadConfig()
+
+	// Print the config values for debugging
+	fmt.Printf("Test Config: %#v\n", config)
+
+	return config
 }
