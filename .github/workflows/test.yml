@@ -43,9 +43,23 @@ jobs:
         run: |
           poetry run pytest
 
-  run_tests:
+  run_go_tests:
     name: Run golang tests
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USERNAME: "dagorama"
+          POSTGRES_DATABASE: "dagorama_test_db"
+          POSTGRES_PASSWORD: "dagorama_pw"
+        # Wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - uses: actions/checkout@v3
@@ -60,11 +74,17 @@ jobs:
           go install
 
       - name: Run tests
+        env:
+          DAGORAMA_TEST_STORAGE_HOST: postgres
+          DAGORAMA_TEST_STORAGE_PASSWORD: postgres_pw
         run: |
           cd broker
           go test -v .
 
       - name: Run race condition tests
+        env:
+          DAGORAMA_TEST_STORAGE_HOST: postgres
+          DAGORAMA_TEST_STORAGE_PASSWORD: postgres_pw
         run: |
           cd broker
           go test -v -race .
