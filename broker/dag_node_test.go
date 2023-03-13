@@ -12,7 +12,7 @@ func TestUpsertNode(t *testing.T) {
 
 	clearTestDatabase()
 
-	config := getTestConfig()
+	config := getTestPersistentConfig()
 	db := NewDatabase(
 		config.storage.host,
 		config.storage.port,

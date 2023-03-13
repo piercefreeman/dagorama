@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -69,9 +71,7 @@ type Broker struct {
 	database *bun.DB
 }
 
-func NewBroker() *Broker {
-	config := loadConfig()
-
+func NewBroker(config *Config) *Broker {
 	// If we're set to debug, allocate a debug session
 	// Otherwise default to production
 	var logger *zap.Logger
@@ -92,7 +92,7 @@ func NewBroker() *Broker {
 		)
 	}
 
-	return &Broker{
+	broker := &Broker{
 		taskQueuesLock:           sync.Mutex{},
 		taskQueues:               make(map[string]*HeapQueue),
 		futureScheduledNodesLock: sync.RWMutex{},
@@ -105,6 +105,15 @@ func NewBroker() *Broker {
 		logger:                   logger,
 		database:                 database,
 	}
+
+	if database != nil {
+		err := broker.LoadFromDatabase()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return broker
 }
 
 func (broker *Broker) NewWorker(
@@ -331,6 +340,100 @@ func (broker *Broker) QueueFutureScheduledExecute() {
 		node := broker.futureScheduledNodes.PopItem().node
 		broker.EnqueueNode(node)
 	}
+}
+
+func (broker *Broker) LoadFromDatabase() error {
+	instances := []PersistentDAGInstance{}
+	nodes := []PersistentDAGNode{}
+
+	err := broker.database.NewSelect().Model(&instances).Scan(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	err = broker.database.NewSelect().Model(&nodes).Scan(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	// First we create all the relevant objects, without the obj->obj pointer mappings
+	instancesById := make(map[string]*DAGInstance)
+	nodesById := make(map[string]*DAGNode)
+	invalidNodeIdentifiers := []string{}
+
+	for _, instance := range instances {
+		instancesById[instance.Identifier] = &DAGInstance{
+			identifier: instance.Identifier,
+			order:      instance.Order,
+			broker:     broker,
+		}
+	}
+
+	for _, node := range nodes {
+		instance, exists := instancesById[node.InstanceIdentifier]
+
+		if !exists {
+			broker.logger.Error("Unable to find node->instance", zap.String("node", node.Identifier), zap.String("instance", node.InstanceIdentifier))
+			continue
+		}
+
+		nodesById[node.Identifier] = &DAGNode{
+			identifier:   node.Identifier,
+			functionName: node.FunctionName,
+			queueName:    node.QueueName,
+			taintName:    node.TaintName,
+			functionHash: node.FunctionHash,
+			arguments:    node.Arguments,
+			sources:      make([]*DAGNode, len(node.SourceIdentifiers)),
+			destinations: make([]*DAGNode, len(node.DestinationIdentifiers)),
+			instance:     instance,
+		}
+	}
+
+	// Now go through and set the obj->obj pointers
+	for _, node := range nodes {
+		for i, sourceIdentifier := range node.SourceIdentifiers {
+			source, exists := nodesById[sourceIdentifier]
+
+			if !exists {
+				broker.logger.Error("Unable to find node->source", zap.String("node", node.Identifier), zap.String("source", sourceIdentifier))
+				invalidNodeIdentifiers = append(invalidNodeIdentifiers, node.Identifier)
+				continue
+			}
+
+			nodesById[node.Identifier].sources[i] = source
+		}
+		for i, destinationIdentifier := range node.DestinationIdentifiers {
+			destination, exists := nodesById[destinationIdentifier]
+
+			if !exists {
+				broker.logger.Error("Unable to find node->destination", zap.String("node", node.Identifier), zap.String("destination", destinationIdentifier))
+				invalidNodeIdentifiers = append(invalidNodeIdentifiers, node.Identifier)
+				continue
+			}
+
+			nodesById[node.Identifier].destinations[i] = destination
+		}
+	}
+
+	// If a node is in the invalidNodeIdentifiers list, we couldn't resolve all their dependencies
+	// We should drop their value from the map
+	for _, invalidIdentifier := range invalidNodeIdentifiers {
+		fmt.Printf("Invalid node dependencies %s, removing from queue.\n", invalidIdentifier)
+		delete(nodesById, invalidIdentifier)
+	}
+
+	// Add to the broker
+	for _, instance := range instancesById {
+		broker.instances[instance.identifier] = instance
+	}
+	for _, node := range nodesById {
+		broker.EnqueueNode(node)
+	}
+
+	return nil
 }
 
 func (broker *Broker) getAllowedQueues(worker *Worker) []string {

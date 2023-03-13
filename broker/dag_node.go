@@ -71,6 +71,9 @@ func (node *DAGNode) ExecutionDidResolve(value []byte) {
 	for _, destination := range node.destinations {
 		destination.DependencyDidResolve()
 	}
+
+	// Update the database
+	node.UpsertIntoDatabase(node.instance.broker.database, 0)
 }
 
 func (node *DAGNode) ExecutionDidFail(traceback string) {
@@ -163,10 +166,10 @@ func (node *DAGNode) UpsertIntoDatabase(
 		Completed:                         node.completed,
 		InstanceIdentifier:                node.instance.identifier,
 		RetryPolicyEnabled:                node.retryPolicy != nil,
-		RetryPolicyCurrentAttempt:         TernaryIf(node.retryPolicy != nil, node.retryPolicy.currentAttempt, -1),
-		RetryPolicyMaxAttempts:            TernaryIf(node.retryPolicy != nil, node.retryPolicy.maxAttempts, -1),
-		RetryPolicyStaticInterval:         TernaryIf(node.retryPolicy != nil, node.retryPolicy.staticInterval, -1),
-		RetryPolicyExponentialBackoffBase: TernaryIf(node.retryPolicy != nil, node.retryPolicy.exponentialBackoffBase, -1),
+		RetryPolicyCurrentAttempt:         TernaryIfDelayed(node.retryPolicy != nil, func() int { return node.retryPolicy.currentAttempt }, func() int { return -1 }),
+		RetryPolicyMaxAttempts:            TernaryIfDelayed(node.retryPolicy != nil, func() int { return node.retryPolicy.maxAttempts }, func() int { return -1 }),
+		RetryPolicyStaticInterval:         TernaryIfDelayed(node.retryPolicy != nil, func() int { return node.retryPolicy.staticInterval }, func() int { return -1 }),
+		RetryPolicyExponentialBackoffBase: TernaryIfDelayed(node.retryPolicy != nil, func() int { return node.retryPolicy.exponentialBackoffBase }, func() int { return -1 }),
 		Failures: func() []interface{} {
 			failures := make([]interface{}, len(node.failures))
 			for i, failure := range node.failures {

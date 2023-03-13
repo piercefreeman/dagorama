@@ -2,21 +2,11 @@ package main
 
 import (
 	"context"
-	"os"
 	"testing"
 )
 
-func getTestConfig() *Config {
-	os.Setenv("DAGORAMA_ENVIRONMENT", "development")
-	os.Setenv("DAGORAMA_STORAGE_ENABLED", "true")
-	os.Setenv("DAGORAMA_STORAGE_USERNAME", "dagorama")
-	os.Setenv("DAGORAMA_STORAGE_DATABASE", "dagorama_test_db")
-
-	return loadConfig()
-}
-
 func clearTestDatabase() {
-	config := getTestConfig()
+	config := getTestPersistentConfig()
 
 	db := NewDatabase(
 		config.storage.host,
@@ -34,7 +24,7 @@ func clearTestDatabase() {
 func TestNewDatabase(t *testing.T) {
 	clearTestDatabase()
 
-	config := getTestConfig()
+	config := getTestPersistentConfig()
 
 	db := NewDatabase(
 		config.storage.host,

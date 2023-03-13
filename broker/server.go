@@ -13,7 +13,8 @@ type BrokerServer struct {
 }
 
 func NewBrokerServer() *BrokerServer {
-	broker := NewBroker()
+	config := loadConfig()
+	broker := NewBroker(config)
 
 	// GC should run in the background periodically. The function will own
 	// its own wakeup logic and will run forever.

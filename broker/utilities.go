@@ -27,3 +27,11 @@ func TernaryIf[T any](condition bool, trueValue T, falseValue T) T {
 	}
 	return falseValue
 }
+
+func TernaryIfDelayed[T any](condition bool, trueValue func() T, falseValue func() T) T {
+	// Only call functions if condition is valid
+	if condition {
+		return trueValue()
+	}
+	return falseValue()
+}
