@@ -1,8 +1,24 @@
 # dagorama-broker
 
-Env variables:
+## Environment Variables
 
 `DAGORAMA_ENVIRONMENT` - If set to "development", will activate verbose logging. Otherwise (by default) will log only warnings and above.
+
+`DAGORAMA_HOST` - Hostname of the broker. Defaults to `localhost`.
+
+`DAGORAMA_PORT` - Port of the broker. Defaults to `50051`.
+
+`DAGORAMA_STORAGE_ENABLED` - `true` or `false`. If `true`, will persist data to a Postgres database. If `false` will only use an in-memory heap. Defaults to `false`.
+
+`DAGORAMA_STORAGE_HOST` - Hostname of the Postgres database.
+
+`DAGORAMA_STORAGE_PORT` - Port of the Postgres database.
+
+`DAGORAMA_STORAGE_USER` - Username of the Postgres database.
+
+`DAGORAMA_STORAGE_PASSWORD` - Password of the Postgres database.
+
+`DAGORAMA_STORAGE_DATABASE` - Name of the Postgres database.
 
 ## Persistence
 
