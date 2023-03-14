@@ -14,9 +14,9 @@ import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
+from dagorama.logging import LOGGER, get_default_console_width
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
-from dagorama.logging import LOGGER, get_default_console_width
 
 
 class CodeMismatchException(Exception):
@@ -102,7 +102,9 @@ async def execute_worker_async(
 
             #print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
             # Ensure that we have the correct local version of the function
-            if calculate_function_hash(resolved_fn.original_fn) != next_item.functionHash:
+            current_fn_hash = calculate_function_hash(resolved_fn.original_fn)
+            if current_fn_hash != next_item.functionHash:
+                LOGGER.debug(f"Function hash mismatch, expected {next_item.functionHash} but got {current_fn_hash}")
                 raise CodeMismatchException()
 
             if catch_exceptions:

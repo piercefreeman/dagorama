@@ -4,7 +4,6 @@ import (
 	"context"
 	pb "dagorama/api"
 	"errors"
-	"log"
 )
 
 type BrokerServer struct {
@@ -14,7 +13,8 @@ type BrokerServer struct {
 }
 
 func NewBrokerServer() *BrokerServer {
-	broker := NewBroker()
+	config := loadConfig()
+	broker := NewBroker(config)
 
 	// GC should run in the background periodically. The function will own
 	// its own wakeup logic and will run forever.
@@ -27,19 +27,19 @@ func NewBrokerServer() *BrokerServer {
 }
 
 func (s *BrokerServer) CreateWorker(ctx context.Context, in *pb.WorkerConfigurationMessage) (*pb.WorkerMessage, error) {
-	log.Printf("Creating worker")
+	s.broker.logger.Debug("Creating worker")
 	worker := s.broker.NewWorker(in.ExcludeQueues, in.IncludeQueues, in.QueueTolerations)
 	return &pb.WorkerMessage{Identifier: worker.identifier}, nil
 }
 
 func (s *BrokerServer) CreateInstance(ctx context.Context, in *pb.InstanceConfigurationMessage) (*pb.InstanceMessage, error) {
-	log.Printf("Creating instance")
+	s.broker.logger.Debug("Creating instance")
 	instance := s.broker.NewInstance(in.Identifier)
 	return &pb.InstanceMessage{Identifier: instance.identifier}, nil
 }
 
 func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationMessage) (*pb.NodeMessage, error) {
-	log.Printf("Creating node")
+	s.broker.logger.Debug("Creating node")
 	instance := s.broker.GetInstance(in.InstanceId)
 
 	// Map sources to nodes
@@ -71,7 +71,7 @@ func (s *BrokerServer) CreateNode(ctx context.Context, in *pb.NodeConfigurationM
 }
 
 func (s *BrokerServer) Ping(ctx context.Context, in *pb.WorkerMessage) (*pb.PongMessage, error) {
-	log.Printf("Ping worker")
+	s.broker.logger.Debug("Ping submitted from worker")
 	worker := s.broker.GetWorker(in.Identifier)
 	worker.Ping()
 
@@ -81,7 +81,7 @@ func (s *BrokerServer) Ping(ctx context.Context, in *pb.WorkerMessage) (*pb.Pong
 }
 
 func (s *BrokerServer) GetNode(ctx context.Context, in *pb.NodeRetrieveMessage) (*pb.NodeMessage, error) {
-	log.Printf("Get node")
+	s.broker.logger.Debug("Get node")
 	instance := s.broker.GetInstance(in.InstanceId)
 	node := instance.GetNode(in.Identifier)
 
@@ -89,7 +89,7 @@ func (s *BrokerServer) GetNode(ctx context.Context, in *pb.NodeRetrieveMessage) 
 }
 
 func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.NodeMessage, error) {
-	log.Printf("Get work")
+	s.broker.logger.Debug("Get work")
 	worker := s.broker.GetWorker(in.Identifier)
 
 	if worker.invalidated {
@@ -106,7 +106,7 @@ func (s *BrokerServer) GetWork(ctx context.Context, in *pb.WorkerMessage) (*pb.N
 }
 
 func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessage) (*pb.NodeMessage, error) {
-	log.Printf("Submit work")
+	s.broker.logger.Debug("Submit work")
 	worker := s.broker.GetWorker(in.WorkerId)
 
 	if worker.invalidated {
@@ -121,7 +121,7 @@ func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessag
 }
 
 func (s *BrokerServer) SubmitFailure(ctx context.Context, in *pb.WorkFailedMessage) (*pb.NodeMessage, error) {
-	log.Printf("Submit failure")
+	s.broker.logger.Debug("Submit failure")
 	worker := s.broker.GetWorker(in.WorkerId)
 
 	if worker.invalidated {

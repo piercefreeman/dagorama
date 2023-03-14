@@ -1,12 +1,15 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
 	"math"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
+	"go.uber.org/zap"
 )
 
 type Worker struct {
@@ -38,208 +41,6 @@ func (worker *Worker) Ping() {
 	worker.lastPing = time.Now().Unix()
 }
 
-type DAGFailure struct {
-	/*
-	 * Record client-side errors and exceptions
-	 */
-	traceback string
-}
-
-type DAGNode struct {
-	identifier   string
-	functionName string
-
-	queueName string
-	taintName string
-
-	// Hash of function code logic, used by workers to determine if their local
-	// version of the code is the same as the version that was queued originally
-	functionHash string
-
-	// The arguments array should contain all arguments that are passed to this node, including
-	// client side
-	arguments []byte
-
-	// src values of the (src, dst) that end at this dst
-	sources []*DAGNode
-
-	// dst of the (src, dst) edges that start at this src
-	destinations []*DAGNode
-
-	// Once we have determined the value for the DAG (ie. the return value
-	// of the actual function), populate the next DAGs with the value
-	// Might be null even for completed objects if no return value is specified
-	resolvedValue []byte
-
-	// True if this node has resolved its execution
-	completed bool
-
-	// The instance that spawned this DAG node
-	instance *DAGInstance
-
-	// Worker that is currently executing this node
-	dequeueTimestamp int64
-	dequeueWorker    *Worker
-
-	// Store failures on past invocations of this node
-	retryPolicy  *RetryPolicy
-	failures     []*DAGFailure
-	failuresLock sync.RWMutex
-}
-
-func (node *DAGNode) ExecutionDidResolve(value []byte) {
-	/*
-	 * Called by clients when we have finalized a value for this DAG Node
-	 */
-	// Handle resolution
-	node.resolvedValue = value
-	node.completed = true
-
-	// Release the worker lock from the element
-	node.ReleaseWorkerLock()
-
-	// Dequeue destinations
-	// If all are valid, enqueue into the actual DAG queue
-	for _, destination := range node.destinations {
-		destination.DependencyDidResolve()
-	}
-}
-
-func (node *DAGNode) ExecutionDidFail(traceback string) {
-	failure := DAGFailure{
-		traceback: traceback,
-	}
-
-	// Release the worker lock
-	node.ReleaseWorkerLock()
-
-	// Record the failure as part of this node
-	node.failuresLock.Lock()
-	defer node.failuresLock.Unlock()
-	node.failures = append(node.failures, &failure)
-
-	// Requeue back into the DAG with the node's backoff policy
-	node.instance.broker.BackoffNode(node)
-}
-
-func (node *DAGNode) ReleaseWorkerLock() {
-	/*
-	 * Releases the worker's sole control over this element
-	 * but won't yet requeue the element
-	 */
-	worker := node.dequeueWorker
-	if worker != nil {
-		worker.claimedWorkLock.Lock()
-		defer worker.claimedWorkLock.Unlock()
-
-		worker.claimedWork = filterSlice(worker.claimedWork, func(compareNode *DAGNode) bool {
-			return compareNode.identifier != node.identifier
-		})
-	}
-
-	// Release the worker lock from the note
-	node.dequeueTimestamp = 0
-	node.dequeueWorker = nil
-}
-
-func (node *DAGNode) DependencyDidResolve() {
-	/*
-	 * Check if all dependencies have resolved
-	 * If so, enqueue into the DAG queue
-	 */
-	dependenciesComplete := true
-	for _, dependency := range node.sources {
-		if !dependency.completed {
-			dependenciesComplete = false
-			break
-		}
-	}
-
-	if dependenciesComplete {
-		// Add to queue
-		node.instance.broker.EnqueueNode(node)
-	}
-}
-
-type DAGInstance struct {
-	/*
-	 * One instance of a DAG. The result of an client-side `entrypoint` that kicks
-	 * off the rest of the job logic.
-	 */
-	// DAGs are prioritized based on the order in which they were inserted into
-	// the queue. This becomes the priority order added to the queue DAGs.
-	identifier string
-	order      int
-
-	// ID -> DAGNode
-	// Will keep nodes retained until we cleanup the instance
-	nodeLock sync.RWMutex
-	nodes    map[string]*DAGNode
-
-	broker *Broker
-}
-
-func (instance *DAGInstance) NewNode(
-	identifier string,
-	functionName string,
-	functionHash string,
-	queueName string,
-	taintName string,
-	arguments []byte,
-	sources []*DAGNode,
-	retryPolicy *RetryPolicy,
-) *DAGNode {
-	node := &DAGNode{
-		identifier:   identifier,
-		functionName: functionName,
-		functionHash: functionHash,
-		queueName:    queueName,
-		taintName:    taintName,
-		arguments:    arguments,
-		sources:      sources,
-		destinations: make([]*DAGNode, 0),
-		completed:    false,
-		instance:     instance,
-		failures:     make([]*DAGFailure, 0),
-		failuresLock: sync.RWMutex{},
-		retryPolicy:  retryPolicy,
-	}
-
-	instance.nodeLock.Lock()
-	defer instance.nodeLock.Unlock()
-
-	instance.nodes[identifier] = node
-
-	// Make sure we create the back-link
-	for _, source := range sources {
-		source.destinations = append(source.destinations, node)
-	}
-
-	// Determine whether this node is ready to be executed
-	// This is the same logic as the notification that we receive when
-	// an actual dependency is completed, so we can reuse the same
-	// notification function
-	node.DependencyDidResolve()
-
-	return node
-}
-
-func (instance *DAGInstance) GetNode(identifier string) *DAGNode {
-	instance.nodeLock.RLock()
-	defer instance.nodeLock.RUnlock()
-
-	return instance.nodes[identifier]
-}
-
-func (instance *DAGInstance) release() {
-	/*
-	 * Release cached values associated with DAG
-	 * Also destroy the DAGNode objects
-	 * TODO: Execute automatically under some conditions, like all DAG stages
-	 * completed or similar.
-	 */
-}
-
 type Broker struct {
 	// Mapping of function name to queue
 	// Once an item is added to the queue it should be ready for execution
@@ -248,7 +49,7 @@ type Broker struct {
 
 	// Unscheduled DAGs aren't yet ready for queuing because we are still waiting
 	// for their backoff intervals. Unlike in the regular task queues these objects
-	// are parameterized by their timestamp rather than
+	// are parameterized by their timestamp rather than their desired execution order
 	futureScheduledNodesLock sync.RWMutex
 	futureScheduledNodes     *HeapQueue
 
@@ -263,10 +64,35 @@ type Broker struct {
 	// Require a ping within this interval or a worker will be considered unhealthy
 	// and removed from the pool, seconds
 	requiredPingInterval int
+
+	logger *zap.Logger
+
+	// Only set if we're using a persistent storage backend
+	database *bun.DB
 }
 
-func NewBroker() *Broker {
-	return &Broker{
+func NewBroker(config *Config) *Broker {
+	// If we're set to debug, allocate a debug session
+	// Otherwise default to production
+	var logger *zap.Logger
+	if config.environment == "development" {
+		logger, _ = zap.NewDevelopment()
+	} else {
+		logger, _ = zap.NewProduction()
+	}
+
+	var database *bun.DB = nil
+	if config.storage.enabled {
+		database = NewDatabase(
+			config.storage.host,
+			config.storage.port,
+			config.storage.username,
+			config.storage.password,
+			config.storage.database,
+		)
+	}
+
+	broker := &Broker{
 		taskQueuesLock:           sync.Mutex{},
 		taskQueues:               make(map[string]*HeapQueue),
 		futureScheduledNodesLock: sync.RWMutex{},
@@ -276,7 +102,18 @@ func NewBroker() *Broker {
 		workerLock:               sync.RWMutex{},
 		workers:                  make(map[string]*Worker),
 		requiredPingInterval:     60,
+		logger:                   logger,
+		database:                 database,
 	}
+
+	if database != nil {
+		err := broker.LoadFromDatabase()
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return broker
 }
 
 func (broker *Broker) NewWorker(
@@ -315,6 +152,11 @@ func (broker *Broker) NewInstance(identifier string) *DAGInstance {
 	}
 	broker.instances[identifier] = instance
 
+	// Add to the database
+	if broker.database != nil {
+		instance.InsertIntoDatabase(broker.database)
+	}
+
 	return instance
 }
 
@@ -336,25 +178,44 @@ func (broker *Broker) EnqueueNode(node *DAGNode) {
 	/*
 	 * Enqueue a DAG node into the appropriate queue
 	 */
-	log.Printf("Enqueueing node %s", node.identifier)
-	broker.taskQueuesLock.Lock()
-	defer broker.taskQueuesLock.Unlock()
+	broker.logger.Info("Enqueueing node", zap.String("identifier", node.identifier))
 
-	// Create the queue if it doesn't exist
-	if _, ok := broker.taskQueues[node.queueName]; !ok {
-		newQueue := NewHeapQueue()
-		newQueue.taint = node.taintName
-		broker.taskQueues[node.queueName] = newQueue
+	// Determine if we should enqueue to the task queues or to the future scheduled queue
+	if node.nextRetryAvailable > -1 && time.Now().UnixMilli() < node.nextRetryAvailable {
+		broker.futureScheduledNodesLock.Lock()
+		defer broker.futureScheduledNodesLock.Unlock()
 
-		// Clear the cache of allowed worker queues since we have just added
-		// a new one that will invalidate the cache
-		for _, worker := range broker.workers {
-			worker.allowedQueues = []string{}
+		broker.futureScheduledNodes.PushItem(node, node.nextRetryAvailable)
+	} else {
+		broker.taskQueuesLock.Lock()
+		defer broker.taskQueuesLock.Unlock()
+
+		// Create the queue if it doesn't exist
+		if _, ok := broker.taskQueues[node.queueName]; !ok {
+			newQueue := NewHeapQueue()
+			newQueue.taint = node.taintName
+			broker.taskQueues[node.queueName] = newQueue
+
+			// Clear the cache of allowed worker queues since we have just added
+			// a new one that will invalidate the cache
+			for _, worker := range broker.workers {
+				worker.allowedQueues = []string{}
+			}
 		}
+
+		// We should have a blank backoff interval since the item is ready
+		// to be queued in the active queues
+		node.nextRetryAvailable = -1
+
+		// Add to queue
+		nodePriority := int64(node.instance.order)
+		broker.taskQueues[node.queueName].PushItem(node, nodePriority)
 	}
 
-	// Add to queue
-	broker.taskQueues[node.queueName].PushItem(node, int64(node.instance.order))
+	// Save if relevant
+	if broker.database != nil {
+		node.UpsertIntoDatabase(broker.database)
+	}
 }
 
 func (broker *Broker) BackoffNode(node *DAGNode) {
@@ -366,15 +227,15 @@ func (broker *Broker) BackoffNode(node *DAGNode) {
 		return
 	}
 
-	broker.futureScheduledNodesLock.Lock()
-	defer broker.futureScheduledNodesLock.Unlock()
-
 	backoffInterval := node.retryPolicy.getWaitIntervalMilliseconds()
 	if backoffInterval == -1 {
 		// Have exhausted retry attempts, shouldn't queue back
 		return
 	}
-	broker.futureScheduledNodes.PushItem(node, time.Now().UnixMilli()+int64(backoffInterval))
+	nextRetryAvailable := time.Now().UnixMilli() + int64(backoffInterval)
+	node.nextRetryAvailable = nextRetryAvailable
+
+	broker.EnqueueNode(node)
 }
 
 func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
@@ -387,7 +248,7 @@ func (broker *Broker) PopNextNode(worker *Worker) *DAGNode {
 	minimumQueueName := ""
 
 	allowedQueues := broker.getAllowedQueues(worker)
-	log.Printf("Allowed queues: %v", allowedQueues)
+	broker.logger.Debug("Pop next node", zap.String("worker", worker.identifier), zap.Strings("allowedQueues", allowedQueues))
 
 	for queueName, queue := range broker.taskQueues {
 		// Only support the given queues
@@ -434,7 +295,7 @@ func (broker *Broker) GarbageCollectWorkers() {
 func (broker *Broker) GarbageCollectWorkersExecute() {
 	for workerID, worker := range broker.workers {
 		if worker.lastPing < time.Now().Unix()-int64(broker.requiredPingInterval) {
-			log.Printf("Garbage collecting worker %s", workerID)
+			broker.logger.Info("Garbage collecting worker", zap.String("identifier", workerID))
 
 			// Free the currently processing nodes back into the pool
 			for _, node := range worker.claimedWork {
@@ -486,6 +347,100 @@ func (broker *Broker) QueueFutureScheduledExecute() {
 		node := broker.futureScheduledNodes.PopItem().node
 		broker.EnqueueNode(node)
 	}
+}
+
+func (broker *Broker) LoadFromDatabase() error {
+	instances := []PersistentDAGInstance{}
+	nodes := []PersistentDAGNode{}
+
+	err := broker.database.NewSelect().Model(&instances).Scan(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	err = broker.database.NewSelect().Model(&nodes).Scan(context.Background())
+
+	if err != nil {
+		return err
+	}
+
+	// First we create all the relevant objects, without the obj->obj pointer mappings
+	instancesById := make(map[string]*DAGInstance)
+	nodesById := make(map[string]*DAGNode)
+	invalidNodeIdentifiers := []string{}
+
+	for _, instance := range instances {
+		instancesById[instance.Identifier] = &DAGInstance{
+			identifier: instance.Identifier,
+			order:      instance.Order,
+			broker:     broker,
+		}
+	}
+
+	for _, node := range nodes {
+		instance, exists := instancesById[node.InstanceIdentifier]
+
+		if !exists {
+			broker.logger.Error("Unable to find node->instance", zap.String("node", node.Identifier), zap.String("instance", node.InstanceIdentifier))
+			continue
+		}
+
+		nodesById[node.Identifier] = &DAGNode{
+			identifier:   node.Identifier,
+			functionName: node.FunctionName,
+			queueName:    node.QueueName,
+			taintName:    node.TaintName,
+			functionHash: node.FunctionHash,
+			arguments:    node.Arguments,
+			sources:      make([]*DAGNode, len(node.SourceIdentifiers)),
+			destinations: make([]*DAGNode, len(node.DestinationIdentifiers)),
+			instance:     instance,
+		}
+	}
+
+	// Now go through and set the obj->obj pointers
+	for _, node := range nodes {
+		for i, sourceIdentifier := range node.SourceIdentifiers {
+			source, exists := nodesById[sourceIdentifier]
+
+			if !exists {
+				broker.logger.Error("Unable to find node->source", zap.String("node", node.Identifier), zap.String("source", sourceIdentifier))
+				invalidNodeIdentifiers = append(invalidNodeIdentifiers, node.Identifier)
+				continue
+			}
+
+			nodesById[node.Identifier].sources[i] = source
+		}
+		for i, destinationIdentifier := range node.DestinationIdentifiers {
+			destination, exists := nodesById[destinationIdentifier]
+
+			if !exists {
+				broker.logger.Error("Unable to find node->destination", zap.String("node", node.Identifier), zap.String("destination", destinationIdentifier))
+				invalidNodeIdentifiers = append(invalidNodeIdentifiers, node.Identifier)
+				continue
+			}
+
+			nodesById[node.Identifier].destinations[i] = destination
+		}
+	}
+
+	// If a node is in the invalidNodeIdentifiers list, we couldn't resolve all their dependencies
+	// We should drop their value from the map
+	for _, invalidIdentifier := range invalidNodeIdentifiers {
+		fmt.Printf("Invalid node dependencies %s, removing from queue.\n", invalidIdentifier)
+		delete(nodesById, invalidIdentifier)
+	}
+
+	// Add to the broker
+	for _, instance := range instancesById {
+		broker.instances[instance.identifier] = instance
+	}
+	for _, node := range nodesById {
+		broker.EnqueueNode(node)
+	}
+
+	return nil
 }
 
 func (broker *Broker) getAllowedQueues(worker *Worker) []string {
