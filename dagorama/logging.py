@@ -1,5 +1,5 @@
 from logging import (CRITICAL, DEBUG, ERROR, INFO, WARNING, basicConfig,
-                     getLogger)
+                     getLogger, StreamHandler, Formatter)
 from os import getenv
 
 
@@ -23,13 +23,17 @@ def get_log_level():
       return CRITICAL
    raise ValueError(f"Unknown log level: {level}")
 
+def get_logger():
+   logger = getLogger("Dagorama")
+   logger.setLevel(get_log_level())
 
-basicConfig(
-    level=get_log_level(),
-    format="{asctime} - {name} - [{levelname}] - {message}",
-)
+   console_channel = StreamHandler()
+   console_channel.setFormatter(
+      Formatter("%(asctime)s - %(name)s - [%(levelname)s] - %(message)s")
+   )
 
-LOGGER = getLogger("Dagorama")
+   logger.addHandler(console_channel)
+   return logger
 
 def get_default_console_width(default_value: int = 80):
    try:

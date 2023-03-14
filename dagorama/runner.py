@@ -14,7 +14,7 @@ import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
-from dagorama.logging import LOGGER, get_default_console_width
+from dagorama.logging import get_logger, get_default_console_width
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
 
@@ -48,6 +48,8 @@ async def execute_worker_async(
     infinite_loop: bool = True,
     catch_exceptions: bool = True,
 ):
+    logger = get_logger()
+
     with dagorama_context() as context:
         worker = context.CreateWorker(
             pb2.WorkerConfigurationMessage(
@@ -71,7 +73,7 @@ async def execute_worker_async(
                 if e.details() == "no work available":
                     if not infinite_loop:
                         return
-                    LOGGER.debug("No work available, polling in 1s...")
+                    logger.debug("No work available, polling in 1s...")
                     sleep(1)
                     continue
                 else:
@@ -94,17 +96,17 @@ async def execute_worker_async(
             resolved_fn = name_to_function(next_item.functionName, next_item.instanceId)
 
             console_width = get_default_console_width()
-            LOGGER.debug("-" * console_width)
-            LOGGER.debug(f"Executing {next_item} with {arguments}")
-            LOGGER.debug(f"Resolved values: {resolved_values} | {resolved_args} | {resolved_kwargs}")
-            LOGGER.debug(f"Resolved fn: {resolved_fn}")
-            LOGGER.debug("-" * console_width)
+            logger.debug("-" * console_width)
+            logger.debug(f"Executing {next_item} with {arguments}")
+            logger.debug(f"Resolved values: {resolved_values} | {resolved_args} | {resolved_kwargs}")
+            logger.debug(f"Resolved fn: {resolved_fn}")
+            logger.debug("-" * console_width)
 
             #print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
             # Ensure that we have the correct local version of the function
             current_fn_hash = calculate_function_hash(resolved_fn.original_fn)
             if current_fn_hash != next_item.functionHash:
-                LOGGER.debug(f"Function hash mismatch, expected {next_item.functionHash} but got {current_fn_hash}")
+                logger.debug(f"Function hash mismatch, expected {next_item.functionHash} but got {current_fn_hash}")
                 raise CodeMismatchException()
 
             if catch_exceptions:
@@ -114,7 +116,7 @@ async def execute_worker_async(
                         result = await result
                 except Exception as e:
                     traceback = format_exc()
-                    LOGGER.warning(f"Exception encountered, reporting to broker: {e}\n{traceback}")
+                    logger.warning(f"Exception encountered, reporting to broker: {e}\n{traceback}")
                     context.SubmitFailure(
                         pb2.WorkFailedMessage(
                             instanceId=next_item.instanceId,

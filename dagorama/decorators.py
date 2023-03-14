@@ -10,7 +10,7 @@ import dagorama.api.api_pb2 as pb2
 from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import DAGDefinition, DAGInstance, dagorama_context
 from dagorama.inspection import find_promises
-from dagorama.logging import LOGGER
+from dagorama.logging import get_logger
 from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
 from dagorama.retry import RetryConfiguration
@@ -170,7 +170,7 @@ class dagorama:
 
         # Add to the remote runloop
         with dagorama_context() as context:
-            LOGGER.debug(f"Creating node {promise.identifier} for {promise.function_name}")
+            get_logger().debug(f"Creating node {promise.identifier} for {promise.function_name}")
             context.CreateNode(
                 pb2.NodeConfigurationMessage(
                     identifier=str(promise.identifier),
