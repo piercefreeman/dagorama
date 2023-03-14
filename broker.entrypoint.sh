@@ -1,7 +1,7 @@
 #!/bin/ash -e
 
 if [ "$1" = "broker" ]; then
-    exec /broker --port "$PORT" --host "$HOST"
+    exec /broker
 else
     exec "$@"
 fi

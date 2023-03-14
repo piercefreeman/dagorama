@@ -9,8 +9,8 @@ RUN cd /broker && go build .
 
 FROM alpine:3 AS broker
 
-ENV HOST=0.0.0.0
-ENV PORT=50051
+ENV DAGORAMA_HOST=0.0.0.0
+ENV DAGORAMA_PORT=50051
 
 COPY --from=builder /broker/dagorama /broker
 COPY broker.entrypoint.sh /entrypoint.sh
