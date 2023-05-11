@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dagorama"
-version = "0.1.9"
+version = "0.1.10"
 description = ""
 authors = ["Pierce Freeman <pierce@freeman.vc>"]
 readme = "README.md"
