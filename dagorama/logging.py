@@ -1,5 +1,5 @@
-from logging import (CRITICAL, DEBUG, ERROR, INFO, WARNING, basicConfig,
-                     getLogger, StreamHandler, Formatter)
+from logging import (CRITICAL, DEBUG, ERROR, INFO, WARNING, Formatter,
+                     StreamHandler, basicConfig, getLogger)
 from os import getenv
 
 

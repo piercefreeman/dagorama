@@ -1,7 +1,8 @@
 from os import environ
-from dagorama.logging import get_logger
+
 import pytest
 
+from dagorama.logging import get_logger
 
 # Logs should occur in ascending order
 LOG_PRIORITY = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]

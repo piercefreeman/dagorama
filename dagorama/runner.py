@@ -14,7 +14,7 @@ import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import dagorama_context
 from dagorama.inspection import resolve_promises
-from dagorama.logging import get_logger, get_default_console_width
+from dagorama.logging import get_default_console_width, get_logger
 from dagorama.models.arguments import DAGArguments
 from dagorama.serializer import name_to_function
 
