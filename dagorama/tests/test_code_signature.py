@@ -28,7 +28,9 @@ def test_code_signature_dependencies():
         print("Testing")
 
     # Should minimally be different
-    assert calculate_function_hash(fn1) != calculate_function_hash(fn1, include_package_versions=True)
+    assert calculate_function_hash(fn1) != calculate_function_hash(
+        fn1, include_package_versions=True
+    )
 
 
 def get_hash(_):

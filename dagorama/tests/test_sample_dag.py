@@ -1,13 +1,13 @@
 from contextlib import contextmanager
+from unittest.mock import ANY
 
 import pytest
-from unittest.mock import ANY
 
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
-from dagorama.runner import CodeMismatchException, execute_worker
-from dagorama.models.promise import DAGPromise
 from dagorama.models.arguments import DAGArguments
+from dagorama.models.promise import DAGPromise
+from dagorama.runner import CodeMismatchException, execute_worker
 
 
 class CustomDag(DAGDefinition):
@@ -18,8 +18,9 @@ class CustomDag(DAGDefinition):
                           obj3 (2) --> obj5 (4)
                                                  --> obj7 (9)
                           obj4 (3) --> obj6 (5)
-    
+
     """
+
     def __init__(self):
         self.a = 1
 
@@ -31,10 +32,7 @@ class CustomDag(DAGDefinition):
     @dagorama().syncfn
     def linear_continue(self, number: int):
         obj2 = number + 1
-        results = [
-            self.loop_map(obj2+i)
-            for i in range(2)
-        ]
+        results = [self.loop_map(obj2 + i) for i in range(2)]
         return self.loop_consolidate(results)
 
     @dagorama().syncfn
@@ -72,7 +70,7 @@ def test_sample_dag_1(broker):
         arguments=DAGArguments(
             calltime_args=(1,),
             calltime_kwargs={},
-        )
+        ),
     )
 
     execute_worker(infinite_loop=False, catch_exceptions=False)

@@ -11,7 +11,6 @@ class RetryConfiguration(ABC):
         Map the retry configuration to a protobuf message
 
         """
-        pass
 
 
 @dataclass
@@ -21,6 +20,7 @@ class StaticRetry(RetryConfiguration):
     the max attempt count.
 
     """
+
     max_attempts: int
     interval: int
 
@@ -30,6 +30,7 @@ class StaticRetry(RetryConfiguration):
             staticInterval=self.interval,
         )
 
+
 @dataclass
 class ExponentialRetry(RetryConfiguration):
     """
@@ -37,6 +38,7 @@ class ExponentialRetry(RetryConfiguration):
     attempt of the retry. When `max_attempts` has occurred will result in a permanent failure.
 
     """
+
     max_attempts: int
     base_interval: int = 2
 

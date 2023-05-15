@@ -106,11 +106,15 @@ def test_taint_name(broker):
     assert resolve(dag_instance, dag_result) == None
 
     # Require specific allowance
-    execute_worker(queue_tolerations=["test_taint"], infinite_loop=False, catch_exceptions=False)
+    execute_worker(
+        queue_tolerations=["test_taint"], infinite_loop=False, catch_exceptions=False
+    )
     assert resolve(dag_instance, dag_result) == 10
 
 
-@pytest.mark.parametrize("dag_class", [CustomStaticErroringDag, CustomExponentialErroringDag])
+@pytest.mark.parametrize(
+    "dag_class", [CustomStaticErroringDag, CustomExponentialErroringDag]
+)
 def test_erroring_dags(broker, dag_class):
     dag = dag_class()
     dag_instance, dag_result = dag()

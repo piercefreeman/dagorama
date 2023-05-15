@@ -3,13 +3,11 @@ from dataclasses import dataclass
 from functools import wraps
 from inspect import iscoroutinefunction
 from logging import warning
-from os import environ
 from typing import Any, ParamSpec, TypeVar, cast
 from uuid import uuid4
 
 import dagorama.api.api_pb2 as pb2
 from dagorama.code_signature import calculate_function_hash
-from dagorama.settings import should_run_inline
 from dagorama.definition import DAGDefinition, DAGInstance, dagorama_context
 from dagorama.inspection import find_promises
 from dagorama.logging import get_logger
@@ -17,9 +15,10 @@ from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
 from dagorama.retry import RetryConfiguration
 from dagorama.serializer import function_to_name
+from dagorama.settings import should_run_inline
 
-T = TypeVar('T')
-P = ParamSpec('P')
+T = TypeVar("T")
+P = ParamSpec("P")
 
 
 @dataclass
@@ -70,6 +69,7 @@ class dagorama:
         in cases where there are specific compute resources that should own one phase of the pipeline.
 
     """
+
     def __init__(
         self,
         queue_name: str | None = None,
@@ -81,7 +81,9 @@ class dagorama:
         self.retry = retry
 
     def __call__(self, func: Callable[P, T | Awaitable[T]]):
-        warning("Unknown type signature with `@dagorama` decorator. Use `@dagorama.sync` or `@dagorama.async` for explicit typing.")
+        warning(
+            "Unknown type signature with `@dagorama` decorator. Use `@dagorama.sync` or `@dagorama.async` for explicit typing."
+        )
         if iscoroutinefunction(func):
             return self.syncfn(func)
         else:
@@ -106,6 +108,7 @@ class dagorama:
 
             wrapper.original_fn = func  # type: ignore
             return wrapper
+
         return decorator
 
     @property
@@ -121,22 +124,21 @@ class dagorama:
                     return await payload.result
 
                 return cast(
-                    T, payload.promise,
+                    T,
+                    payload.promise,
                 )
 
             wrapper.original_fn = func  # type: ignore
             return wrapper
+
         return decorator
 
-    def common_wrapper(
-        self,
-        func: Callable[P, T],
-        *args: P.args,
-        **kwargs: P.kwargs
-    ):
+    def common_wrapper(self, func: Callable[P, T], *args: P.args, **kwargs: P.kwargs):
         # Ignore the first argument, which will be the passed through class definition
         if isinstance(args[0], DAGDefinition):
-            raise ValueError("A @dagorama() function should only be called as part of a DAGInstance")
+            raise ValueError(
+                "A @dagorama() function should only be called as part of a DAGInstance"
+            )
 
         # We should instead be called on an instance of the DAG, which is injected into
         # the second argument slot
@@ -148,10 +150,7 @@ class dagorama:
         # Can't be provided as an explicit keyword parameter because of a mypy constraint with P.kwargs having
         # to capture everything
         # https://github.com/python/typing/discussions/1191
-        greedy_execution = (
-            kwargs.pop("greedy_execution", False)
-            or should_run_inline()
-        )
+        greedy_execution = kwargs.pop("greedy_execution", False) or should_run_inline()
         if greedy_execution:
             result = func(*args, **kwargs)
             return WrapperResults(result=result)
@@ -162,12 +161,7 @@ class dagorama:
         # This function will have a result
         # Queue in the DAG backend
         promise = DAGPromise(
-            uuid4(),
-            function_to_name(func),
-            DAGArguments(
-                isolated_args,
-                kwargs
-            )
+            uuid4(), function_to_name(func), DAGArguments(isolated_args, kwargs)
         )
 
         # Find the dependencies
@@ -175,7 +169,9 @@ class dagorama:
 
         # Add to the remote runloop
         with dagorama_context() as context:
-            get_logger().debug(f"Creating node {promise.identifier} for {promise.function_name}")
+            get_logger().debug(
+                f"Creating node {promise.identifier} for {promise.function_name}"
+            )
             context.CreateNode(
                 pb2.NodeConfigurationMessage(
                     identifier=str(promise.identifier),
@@ -188,8 +184,7 @@ class dagorama:
                             # We know this is a valid argument object because we just set it
                             DAGArguments,
                             promise.arguments,
-                        )
-                        .to_server_bytes()
+                        ).to_server_bytes()
                     ),
                     sourceIds=[
                         str(dependency.identifier)

@@ -1,4 +1,3 @@
-
 from importlib import import_module
 from inspect import isclass
 from uuid import UUID
@@ -64,13 +63,13 @@ def name_to_function(name: str, instance_id: UUID):
                 mod = mod()
 
             # We should only register DAGDefinitions, since these are the required
-            # abstraction layer for 
+            # abstraction layer for
             if isinstance(mod, DAGDefinition):
                 register_definition(mod)
 
         # We should re-wrap this instance with the context that we know
         # from the message
         if isinstance(mod, DAGDefinition):
-            mod = DAGInstance(instance_id, mod) # type: ignore
+            mod = DAGInstance(instance_id, mod)  # type: ignore
 
     return mod

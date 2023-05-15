@@ -16,11 +16,13 @@ def get_explicit_dependencies():
 
     """
     return [
-        (package.project_name, package.version)
-        for package in pkg_resources.working_set
+        (package.project_name, package.version) for package in pkg_resources.working_set
     ]
 
-def calculate_function_hash(fn: Callable[..., Any], include_package_versions: bool = False) -> str:
+
+def calculate_function_hash(
+    fn: Callable[..., Any], include_package_versions: bool = False
+) -> str:
     """
     :param include_package_versions: Will also include the package versions
         as part of the hash. This helps ensures there is strict environment
@@ -46,6 +48,8 @@ def calculate_function_hash(fn: Callable[..., Any], include_package_versions: bo
         runtime_code_raw += dumps(dependencies)
 
     hash_value = b64encode(md5(runtime_code_raw).digest()).decode()
-    get_logger().debug(f"Hash: Value: {hash_value} (include_package_versions: {include_package_versions})")
+    get_logger().debug(
+        f"Hash: Value: {hash_value} (include_package_versions: {include_package_versions})"
+    )
 
     return hash_value

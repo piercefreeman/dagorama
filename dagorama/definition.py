@@ -37,7 +37,7 @@ class DAGDefinition(ABC):
         return self.call_sync(instance, result_promise)
 
     def call_sync(self, instance: "DAGInstance", result_promise: DAGPromise):
-         # Cast as an actual result promise since this is what clients expect
+        # Cast as an actual result promise since this is what clients expect
         result_promise = cast(DAGPromise, result_promise)
 
         return instance, result_promise
@@ -98,9 +98,7 @@ def generate_instance_id() -> UUID:
     with dagorama_context() as context:
         instance_id = uuid4()
         context.CreateInstance(
-            pb2.InstanceConfigurationMessage(
-                identifier=str(instance_id)
-            )
+            pb2.InstanceConfigurationMessage(identifier=str(instance_id))
         )
     return instance_id
 
@@ -115,6 +113,7 @@ def inject_instance(instance):
             @wraps(func)
             def wrapper(*args, **kwargs):
                 return func(instance, *args, **kwargs)
+
         else:
             # We only want to inject the instance into functions of this main DAG
             return func

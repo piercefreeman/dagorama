@@ -14,6 +14,7 @@ class DAGPromise:
     that they are fully realized before the DAG function is called.
 
     """
+
     identifier: UUID
 
     function_name: str | None = None

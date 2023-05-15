@@ -7,8 +7,8 @@ from dagorama.retry import ExponentialRetry, RetryConfiguration, StaticRetry
     "policy",
     [
         StaticRetry(max_attempts=2, interval=1),
-        ExponentialRetry(max_attempts=2, base_interval=2)
-    ]
+        ExponentialRetry(max_attempts=2, base_interval=2),
+    ],
 )
 def test_convert_message(policy: RetryConfiguration):
     """

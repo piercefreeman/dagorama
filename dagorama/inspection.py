@@ -26,6 +26,7 @@ def resolve_promises(obj: Any, resolved_values: dict[str, Any]) -> Any:
     Recursively resolves promises in the given structures they appear
 
     """
+
     def resolution_function(promise: DAGPromise) -> Any:
         # We should have been provided a value for this dependency from the server
         if str(promise.identifier) not in resolved_values:
@@ -41,6 +42,7 @@ def extract_promise_identifiers(obj: Any) -> Any:
     identifier should already be mapped to a fully hydrated version of the promise in the server.
 
     """
+
     def simplify_function(promise: DAGPromise) -> DAGPromise:
         return DAGPromise(identifier=promise.identifier)
 
@@ -58,24 +60,14 @@ def map_promises(obj: Any, identifier_mapper: Callable[[DAGPromise], Any]) -> An
     # Deal with iterables
     if isinstance(obj, dict):
         return {
-            key: map_promises(value, identifier_mapper)
-            for key, value in obj.items()
+            key: map_promises(value, identifier_mapper) for key, value in obj.items()
         }
     elif isinstance(obj, set):
-        return {
-            map_promises(value, identifier_mapper)
-            for value in obj
-        }
+        return {map_promises(value, identifier_mapper) for value in obj}
     elif isinstance(obj, list):
-        return [
-            map_promises(value, identifier_mapper)
-            for value in obj
-        ]
+        return [map_promises(value, identifier_mapper) for value in obj]
     elif isinstance(obj, tuple):
-        return tuple([
-            map_promises(value, identifier_mapper)
-            for value in obj
-        ])
+        return tuple([map_promises(value, identifier_mapper) for value in obj])
 
     # Otherwise we just have a raw value
     if isinstance(obj, DAGPromise):

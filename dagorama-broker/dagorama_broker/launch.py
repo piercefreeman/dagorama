@@ -40,11 +40,7 @@ def launch_broker(port: int = 50051):
     process = Popen(
         [
             executable_path(),
-            *[
-                str(item)
-                for key, value in parameters.items()
-                for item in [key, value]
-            ]
+            *[str(item) for key, value in parameters.items() for item in [key, value]],
         ]
     )
 

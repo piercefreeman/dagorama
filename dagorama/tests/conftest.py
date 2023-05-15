@@ -1,6 +1,8 @@
+from os import environ
+
 import pytest
 from dagorama_broker.launch import launch_broker
-from os import environ
+
 from dagorama.settings import INLINE_ENVIRONMENT_FLAG
 
 
@@ -9,6 +11,7 @@ from dagorama.settings import INLINE_ENVIRONMENT_FLAG
 def broker():
     with launch_broker():
         yield
+
 
 @pytest.fixture()
 def inline_dag():

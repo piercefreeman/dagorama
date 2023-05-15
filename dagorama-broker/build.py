@@ -1,7 +1,11 @@
 from distutils.command.build_ext import build_ext
 from distutils.core import Distribution
-from distutils.errors import (CCompilerError, CompileError, DistutilsExecError,
-                              DistutilsPlatformError)
+from distutils.errors import (
+    CCompilerError,
+    CompileError,
+    DistutilsExecError,
+    DistutilsPlatformError,
+)
 from distutils.extension import Extension
 from os import chmod, stat
 from pathlib import Path
@@ -43,13 +47,16 @@ class GoExtensionBuilder(build_ext):
             if isinstance(ext, GoExtension):
                 extension_root = Path(__file__).parent.resolve() / ext.path
                 ext_path = self.get_ext_fullpath(ext.name)
-                result = run(["go", "build", "-o", str(Path(ext_path).absolute())], cwd=extension_root)
+                result = run(
+                    ["go", "build", "-o", str(Path(ext_path).absolute())],
+                    cwd=extension_root,
+                )
                 if result.returncode != 0:
                     raise CompileError("Go build failed")
             else:
                 build_ext.build_extension(self, ext)
         except (CCompilerError, DistutilsExecError, DistutilsPlatformError, ValueError):
-            raise BuildFailed('Could not compile C extension.')
+            raise BuildFailed("Could not compile C extension.")
 
 
 def build(setup_kwargs):

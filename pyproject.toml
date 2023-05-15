@@ -23,6 +23,8 @@ types-protobuf = "^3.20.4.2"
 grpc-stubs = "^1.24.11"
 types-setuptools = "^65.5.0.2"
 pytest-asyncio = "^0.20.1"
+autoflake = "^2.1.1"
+black = "^23.3.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -31,3 +33,9 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry.scripts]
 worker = "dagorama.cli:worker"
 worker-hot-reload = "dagorama.hot_reload:run_hot_reload_worker"
+
+
+[tool.isort]
+profile = "black"
+known_first_party = "dagorama"
+multi_line_output=3

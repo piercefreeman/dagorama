@@ -1,6 +1,5 @@
 from dagorama.decorators import dagorama
-from dagorama.definition import (DAGDefinition, DAGInstance,
-                                 generate_instance_id)
+from dagorama.definition import DAGDefinition, DAGInstance, generate_instance_id
 from dagorama.runner import execute_worker
 
 
@@ -13,6 +12,7 @@ class SampleDefinition(DAGDefinition):
     def standard_function(self):
         assert isinstance(self, DAGInstance)
         return 1
+
 
 def test_instance_injection(broker):
     """

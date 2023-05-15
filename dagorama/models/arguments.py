@@ -17,6 +17,7 @@ class DAGArguments:
     To be queued in the DAG, these objects need to be pickle serializable.
 
     """
+
     # Can include static values and other DAGPromises
     # Technically these should not be "Any" but should be any object type that
     # can be pickled / json encoded over the wire

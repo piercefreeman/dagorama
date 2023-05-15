@@ -2,13 +2,13 @@ from subprocess import Popen
 from time import sleep
 from unittest.mock import ANY, MagicMock, call, patch
 
-import pytest
 from click.testing import CliRunner
 from watchdog.events import FileSystemEvent
 
 from dagorama.hot_reload import EventHandler, Observer, run_hot_reload_worker
 
 REBOOT_COMMAND = "echo 'Rebooting worker...' && poetry run worker"
+
 
 def test_dispatch():
     event = MagicMock(spec=FileSystemEvent)
@@ -22,7 +22,11 @@ def test_dispatch():
 
         # Assert that the current_worker has been terminated and a new one has been created
         assert Popen_mock.return_value.terminate.call_args_list == [call()]
-        assert Popen_mock.call_args_list == [call(REBOOT_COMMAND, shell=True), call(REBOOT_COMMAND, shell=True)]
+        assert Popen_mock.call_args_list == [
+            call(REBOOT_COMMAND, shell=True),
+            call(REBOOT_COMMAND, shell=True),
+        ]
+
 
 def test_new_worker():
     Popen_mock = MagicMock(spec=Popen)
@@ -40,29 +44,35 @@ def test_new_worker():
         assert worker == Popen_mock.return_value
         assert Popen_mock.call_args_list == [
             call(REBOOT_COMMAND, shell=True),
-            call(REBOOT_COMMAND, shell=True)
+            call(REBOOT_COMMAND, shell=True),
         ]
+
 
 def test_run_hot_reload_worker():
     Observer_mock = MagicMock(spec=Observer)
 
-    with patch("dagorama.hot_reload.Observer", new=Observer_mock), patch("time.sleep", side_effect=Exception("Stop loop")):
+    with patch("dagorama.hot_reload.Observer", new=Observer_mock), patch(
+        "time.sleep", side_effect=Exception("Stop loop")
+    ):
         runner = CliRunner()
         result = runner.invoke(run_hot_reload_worker, ["--watch-dir", "TEST_DIR"])
 
         # Assert that an observer has been set up and started
-        assert Observer_mock.return_value.schedule.call_args_list == [call(ANY, "TEST_DIR", recursive=True)]
+        assert Observer_mock.return_value.schedule.call_args_list == [
+            call(ANY, "TEST_DIR", recursive=True)
+        ]
         assert Observer_mock.return_value.start.call_args_list == [call()]
 
         # Assert that there was an exception raised to stop the loop
         assert result.exit_code == 1
         assert "Stop loop" in str(result.exception)
 
+
 def test_file_creation_triggers_dispatch(tmp_path):
     # Mocking Popen
     Popen_mock = MagicMock(spec=Popen)
 
-    with patch('dagorama.hot_reload.Popen', new=Popen_mock):
+    with patch("dagorama.hot_reload.Popen", new=Popen_mock):
         handler = EventHandler()
 
         # Setup observer for the temporary directory
@@ -83,9 +93,9 @@ def test_file_creation_triggers_dispatch(tmp_path):
         reboot_count = len(Popen_mock.return_value.terminate.call_args_list)
         assert reboot_count >= 1
         # Initial launch plus reboots
-        assert Popen_mock.call_args_list == [
-            call(REBOOT_COMMAND, shell=True)
-        ] * (reboot_count+1)
+        assert Popen_mock.call_args_list == [call(REBOOT_COMMAND, shell=True)] * (
+            reboot_count + 1
+        )
 
         observer.stop()
         observer.join()

@@ -28,10 +28,7 @@ class EventHandler(FileSystemEventHandler):
         )
 
     def new_worker(self):
-        return Popen(
-            "echo 'Rebooting worker...' && poetry run worker",
-            shell=True
-        )
+        return Popen("echo 'Rebooting worker...' && poetry run worker", shell=True)
 
 
 @command()
@@ -42,7 +39,10 @@ def run_hot_reload_worker(watch_dir):
     used for development purposes.
 
     """
-    secho(f"Launching a dagorama worker in hot-reload mode. This is only intended for development purposes.", fg="yellow")
+    secho(
+        f"Launching a dagorama worker in hot-reload mode. This is only intended for development purposes.",
+        fg="yellow",
+    )
 
     event_handler = EventHandler()
 

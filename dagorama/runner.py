@@ -25,7 +25,6 @@ class CodeMismatchException(Exception):
     different versions of the function code.
 
     """
-    pass
 
 
 def schedule_ping(
@@ -88,7 +87,9 @@ async def execute_worker_async(
 
             # TODO: Add actual resolution
             resolved_args = resolve_promises(arguments.calltime_args, resolved_values)
-            resolved_kwargs = resolve_promises(arguments.calltime_kwargs, resolved_values)
+            resolved_kwargs = resolve_promises(
+                arguments.calltime_kwargs, resolved_values
+            )
 
             # Since this function was queued as part of the worker, we can assume that it will
             # be a wrapped @dagorama function - it will therefore be a standard callable without
@@ -98,36 +99,46 @@ async def execute_worker_async(
             console_width = get_default_console_width()
             logger.debug("-" * console_width)
             logger.debug(f"Executing {next_item} with {arguments}")
-            logger.debug(f"Resolved values: {resolved_values} | {resolved_args} | {resolved_kwargs}")
+            logger.debug(
+                f"Resolved values: {resolved_values} | {resolved_args} | {resolved_kwargs}"
+            )
             logger.debug(f"Resolved fn: {resolved_fn}")
             logger.debug("-" * console_width)
 
-            #print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
+            # print("COMPARE VALUES", calculate_function_hash(resolved_fn.original_fn), next_item.functionHash)
             # Ensure that we have the correct local version of the function
             current_fn_hash = calculate_function_hash(resolved_fn.original_fn)
             if current_fn_hash != next_item.functionHash:
-                logger.debug(f"Function hash mismatch, expected {next_item.functionHash} but got {current_fn_hash}")
+                logger.debug(
+                    f"Function hash mismatch, expected {next_item.functionHash} but got {current_fn_hash}"
+                )
                 raise CodeMismatchException()
 
             if catch_exceptions:
                 try:
-                    result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+                    result = resolved_fn(
+                        *resolved_args, greedy_execution=True, **resolved_kwargs
+                    )
                     if isawaitable(result):
                         result = await result
                 except Exception as e:
                     traceback = format_exc()
-                    logger.warning(f"Exception encountered, reporting to broker: {e}\n{traceback}")
+                    logger.warning(
+                        f"Exception encountered, reporting to broker: {e}\n{traceback}"
+                    )
                     context.SubmitFailure(
                         pb2.WorkFailedMessage(
                             instanceId=next_item.instanceId,
                             nodeId=next_item.identifier,
                             workerId=worker.identifier,
-                            traceback=traceback
+                            traceback=traceback,
                         )
                     )
                     continue
             else:
-                result = resolved_fn(*resolved_args, greedy_execution=True, **resolved_kwargs)
+                result = resolved_fn(
+                    *resolved_args, greedy_execution=True, **resolved_kwargs
+                )
                 if isawaitable(result):
                     result = await result
 
@@ -187,10 +198,7 @@ def launch_workers(
 
     workers = [
         Process(
-            target=execute_worker,
-            kwargs=dict(
-                infinite_loop=not exit_on_completion
-            )
+            target=execute_worker, kwargs=dict(infinite_loop=not exit_on_completion)
         )
         for _ in range(n)
     ]
