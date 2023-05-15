@@ -24,23 +24,11 @@ class WorkerConfigurationMessage(google.protobuf.message.Message):
     INCLUDEQUEUES_FIELD_NUMBER: builtins.int
     QUEUETOLERATIONS_FIELD_NUMBER: builtins.int
     @property
-    def excludeQueues(
-        self,
-    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
-        builtins.str
-    ]: ...
+    def excludeQueues(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
-    def includeQueues(
-        self,
-    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
-        builtins.str
-    ]: ...
+    def includeQueues(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     @property
-    def queueTolerations(
-        self,
-    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
-        builtins.str
-    ]: ...
+    def queueTolerations(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
         self,
         *,
@@ -48,17 +36,7 @@ class WorkerConfigurationMessage(google.protobuf.message.Message):
         includeQueues: collections.abc.Iterable[builtins.str] | None = ...,
         queueTolerations: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "excludeQueues",
-            b"excludeQueues",
-            "includeQueues",
-            b"includeQueues",
-            "queueTolerations",
-            b"queueTolerations",
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["excludeQueues", b"excludeQueues", "includeQueues", b"includeQueues", "queueTolerations", b"queueTolerations"]) -> None: ...
 
 global___WorkerConfigurationMessage = WorkerConfigurationMessage
 
@@ -73,9 +51,7 @@ class WorkerMessage(google.protobuf.message.Message):
         *,
         identifier: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing_extensions.Literal["identifier", b"identifier"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["identifier", b"identifier"]) -> None: ...
 
 global___WorkerMessage = WorkerMessage
 
@@ -90,9 +66,7 @@ class InstanceConfigurationMessage(google.protobuf.message.Message):
         *,
         identifier: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing_extensions.Literal["identifier", b"identifier"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["identifier", b"identifier"]) -> None: ...
 
 global___InstanceConfigurationMessage = InstanceConfigurationMessage
 
@@ -107,9 +81,7 @@ class InstanceMessage(google.protobuf.message.Message):
         *,
         identifier: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing_extensions.Literal["identifier", b"identifier"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["identifier", b"identifier"]) -> None: ...
 
 global___InstanceMessage = InstanceMessage
 
@@ -133,11 +105,7 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
     taintName: builtins.str
     arguments: builtins.bytes
     @property
-    def sourceIds(
-        self,
-    ) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[
-        builtins.str
-    ]: ...
+    def sourceIds(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     instanceId: builtins.str
     @property
     def retry(self) -> global___RetryMessage:
@@ -155,32 +123,8 @@ class NodeConfigurationMessage(google.protobuf.message.Message):
         instanceId: builtins.str = ...,
         retry: global___RetryMessage | None = ...,
     ) -> None: ...
-    def HasField(
-        self, field_name: typing_extensions.Literal["retry", b"retry"]
-    ) -> builtins.bool: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "arguments",
-            b"arguments",
-            "functionHash",
-            b"functionHash",
-            "functionName",
-            b"functionName",
-            "identifier",
-            b"identifier",
-            "instanceId",
-            b"instanceId",
-            "queueName",
-            b"queueName",
-            "retry",
-            b"retry",
-            "sourceIds",
-            b"sourceIds",
-            "taintName",
-            b"taintName",
-        ],
-    ) -> None: ...
+    def HasField(self, field_name: typing_extensions.Literal["retry", b"retry"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "retry", b"retry", "sourceIds", b"sourceIds", "taintName", b"taintName"]) -> None: ...
 
 global___NodeConfigurationMessage = NodeConfigurationMessage
 
@@ -207,11 +151,7 @@ class NodeMessage(google.protobuf.message.Message):
     arguments: builtins.bytes
     resolvedValue: builtins.bytes
     @property
-    def sources(
-        self,
-    ) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[
-        global___NodeMessage
-    ]:
+    def sources(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___NodeMessage]:
         """Nodes that this node depends on
         By the time that this message is sent back to client callers
         these values should be fully populated
@@ -232,31 +172,7 @@ class NodeMessage(google.protobuf.message.Message):
         completed: builtins.bool = ...,
         instanceId: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "arguments",
-            b"arguments",
-            "completed",
-            b"completed",
-            "functionHash",
-            b"functionHash",
-            "functionName",
-            b"functionName",
-            "identifier",
-            b"identifier",
-            "instanceId",
-            b"instanceId",
-            "queueName",
-            b"queueName",
-            "resolvedValue",
-            b"resolvedValue",
-            "sources",
-            b"sources",
-            "taintName",
-            b"taintName",
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "resolvedValue", b"resolvedValue", "sources", b"sources", "taintName", b"taintName"]) -> None: ...
 
 global___NodeMessage = NodeMessage
 
@@ -277,17 +193,7 @@ class RetryMessage(google.protobuf.message.Message):
         staticInterval: builtins.int = ...,
         exponentialBase: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "exponentialBase",
-            b"exponentialBase",
-            "maxAttempts",
-            b"maxAttempts",
-            "staticInterval",
-            b"staticInterval",
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["exponentialBase", b"exponentialBase", "maxAttempts", b"maxAttempts", "staticInterval", b"staticInterval"]) -> None: ...
 
 global___RetryMessage = RetryMessage
 
@@ -302,9 +208,7 @@ class PongMessage(google.protobuf.message.Message):
         *,
         lastPing: builtins.int = ...,
     ) -> None: ...
-    def ClearField(
-        self, field_name: typing_extensions.Literal["lastPing", b"lastPing"]
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["lastPing", b"lastPing"]) -> None: ...
 
 global___PongMessage = PongMessage
 
@@ -328,19 +232,7 @@ class WorkCompleteMessage(google.protobuf.message.Message):
         workerId: builtins.str = ...,
         result: builtins.bytes = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "instanceId",
-            b"instanceId",
-            "nodeId",
-            b"nodeId",
-            "result",
-            b"result",
-            "workerId",
-            b"workerId",
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "result", b"result", "workerId", b"workerId"]) -> None: ...
 
 global___WorkCompleteMessage = WorkCompleteMessage
 
@@ -364,19 +256,7 @@ class WorkFailedMessage(google.protobuf.message.Message):
         workerId: builtins.str = ...,
         traceback: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "instanceId",
-            b"instanceId",
-            "nodeId",
-            b"nodeId",
-            "traceback",
-            b"traceback",
-            "workerId",
-            b"workerId",
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["instanceId", b"instanceId", "nodeId", b"nodeId", "traceback", b"traceback", "workerId", b"workerId"]) -> None: ...
 
 global___WorkFailedMessage = WorkFailedMessage
 
@@ -394,11 +274,24 @@ class NodeRetrieveMessage(google.protobuf.message.Message):
         instanceId: builtins.str = ...,
         identifier: builtins.str = ...,
     ) -> None: ...
-    def ClearField(
-        self,
-        field_name: typing_extensions.Literal[
-            "identifier", b"identifier", "instanceId", b"instanceId"
-        ],
-    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["identifier", b"identifier", "instanceId", b"instanceId"]) -> None: ...
 
 global___NodeRetrieveMessage = NodeRetrieveMessage
+
+@typing_extensions.final
+class CompleteSubscriptionRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    INSTANCEID_FIELD_NUMBER: builtins.int
+    IDENTIFIER_FIELD_NUMBER: builtins.int
+    instanceId: builtins.str
+    identifier: builtins.str
+    def __init__(
+        self,
+        *,
+        instanceId: builtins.str = ...,
+        identifier: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["identifier", b"identifier", "instanceId", b"instanceId"]) -> None: ...
+
+global___CompleteSubscriptionRequest = CompleteSubscriptionRequest

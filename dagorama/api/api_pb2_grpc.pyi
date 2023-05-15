@@ -3,6 +3,7 @@
 isort:skip_file
 """
 import abc
+import collections.abc
 import dagorama.api.api_pb2
 import grpc
 
@@ -23,6 +24,10 @@ class DagoramaStub:
     Ping: grpc.UnaryUnaryMultiCallable[
         dagorama.api.api_pb2.WorkerMessage,
         dagorama.api.api_pb2.PongMessage,
+    ]
+    NotifyComplete: grpc.UnaryStreamMultiCallable[
+        dagorama.api.api_pb2.CompleteSubscriptionRequest,
+        dagorama.api.api_pb2.NodeMessage,
     ]
     GetNode: grpc.UnaryUnaryMultiCallable[
         dagorama.api.api_pb2.NodeRetrieveMessage,
@@ -67,6 +72,12 @@ class DagoramaServicer(metaclass=abc.ABCMeta):
         context: grpc.ServicerContext,
     ) -> dagorama.api.api_pb2.PongMessage: ...
     @abc.abstractmethod
+    def NotifyComplete(
+        self,
+        request: dagorama.api.api_pb2.CompleteSubscriptionRequest,
+        context: grpc.ServicerContext,
+    ) -> collections.abc.Iterator[dagorama.api.api_pb2.NodeMessage]: ...
+    @abc.abstractmethod
     def GetNode(
         self,
         request: dagorama.api.api_pb2.NodeRetrieveMessage,
@@ -91,6 +102,4 @@ class DagoramaServicer(metaclass=abc.ABCMeta):
         context: grpc.ServicerContext,
     ) -> dagorama.api.api_pb2.NodeMessage: ...
 
-def add_DagoramaServicer_to_server(
-    servicer: DagoramaServicer, server: grpc.Server
-) -> None: ...
+def add_DagoramaServicer_to_server(servicer: DagoramaServicer, server: grpc.Server) -> None: ...

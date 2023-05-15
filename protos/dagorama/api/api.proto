@@ -13,6 +13,8 @@ service Dagorama {
 
   rpc Ping(WorkerMessage) returns (PongMessage) {}
 
+  rpc NotifyComplete (CompleteSubscriptionRequest) returns (stream NodeMessage) {}
+
   rpc GetNode(NodeRetrieveMessage) returns (NodeMessage) {}
   rpc GetWork(WorkerMessage) returns (NodeMessage) {}
   rpc SubmitWork(WorkCompleteMessage) returns (NodeMessage) {}
@@ -106,3 +108,9 @@ message NodeRetrieveMessage {
   string instanceId = 1;
   string identifier = 2;
 }
+
+message CompleteSubscriptionRequest {
+  string instanceId = 1;
+  string identifier = 2;
+}
+

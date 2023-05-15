@@ -15,45 +15,50 @@ class DagoramaStub(object):
             channel: A grpc.Channel.
         """
         self.CreateWorker = channel.unary_unary(
-            "/main.Dagorama/CreateWorker",
-            request_serializer=dagorama_dot_api_dot_api__pb2.WorkerConfigurationMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
-        )
+                '/main.Dagorama/CreateWorker',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkerConfigurationMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
+                )
         self.CreateInstance = channel.unary_unary(
-            "/main.Dagorama/CreateInstance",
-            request_serializer=dagorama_dot_api_dot_api__pb2.InstanceConfigurationMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.InstanceMessage.FromString,
-        )
+                '/main.Dagorama/CreateInstance',
+                request_serializer=dagorama_dot_api_dot_api__pb2.InstanceConfigurationMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.InstanceMessage.FromString,
+                )
         self.CreateNode = channel.unary_unary(
-            "/main.Dagorama/CreateNode",
-            request_serializer=dagorama_dot_api_dot_api__pb2.NodeConfigurationMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-        )
+                '/main.Dagorama/CreateNode',
+                request_serializer=dagorama_dot_api_dot_api__pb2.NodeConfigurationMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.Ping = channel.unary_unary(
-            "/main.Dagorama/Ping",
-            request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
-        )
+                '/main.Dagorama/Ping',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
+                )
+        self.NotifyComplete = channel.unary_stream(
+                '/main.Dagorama/NotifyComplete',
+                request_serializer=dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.GetNode = channel.unary_unary(
-            "/main.Dagorama/GetNode",
-            request_serializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-        )
+                '/main.Dagorama/GetNode',
+                request_serializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.GetWork = channel.unary_unary(
-            "/main.Dagorama/GetWork",
-            request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-        )
+                '/main.Dagorama/GetWork',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.SubmitWork = channel.unary_unary(
-            "/main.Dagorama/SubmitWork",
-            request_serializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-        )
+                '/main.Dagorama/SubmitWork',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
         self.SubmitFailure = channel.unary_unary(
-            "/main.Dagorama/SubmitFailure",
-            request_serializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.SerializeToString,
-            response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-        )
+                '/main.Dagorama/SubmitFailure',
+                request_serializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.SerializeToString,
+                response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+                )
 
 
 class DagoramaServicer(object):
@@ -62,333 +67,264 @@ class DagoramaServicer(object):
     def CreateWorker(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateInstance(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def CreateNode(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def Ping(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def NotifyComplete(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetNode(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def GetWork(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def SubmitWork(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def SubmitFailure(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details("Method not implemented!")
-        raise NotImplementedError("Method not implemented!")
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
 
 def add_DagoramaServicer_to_server(servicer, server):
     rpc_method_handlers = {
-        "CreateWorker": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateWorker,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerConfigurationMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
-        ),
-        "CreateInstance": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateInstance,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.InstanceConfigurationMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.InstanceMessage.SerializeToString,
-        ),
-        "CreateNode": grpc.unary_unary_rpc_method_handler(
-            servicer.CreateNode,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.NodeConfigurationMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
-        ),
-        "Ping": grpc.unary_unary_rpc_method_handler(
-            servicer.Ping,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.PongMessage.SerializeToString,
-        ),
-        "GetNode": grpc.unary_unary_rpc_method_handler(
-            servicer.GetNode,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
-        ),
-        "GetWork": grpc.unary_unary_rpc_method_handler(
-            servicer.GetWork,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
-        ),
-        "SubmitWork": grpc.unary_unary_rpc_method_handler(
-            servicer.SubmitWork,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
-        ),
-        "SubmitFailure": grpc.unary_unary_rpc_method_handler(
-            servicer.SubmitFailure,
-            request_deserializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.FromString,
-            response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
-        ),
+            'CreateWorker': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateWorker,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerConfigurationMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
+            ),
+            'CreateInstance': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateInstance,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.InstanceConfigurationMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.InstanceMessage.SerializeToString,
+            ),
+            'CreateNode': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateNode,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.NodeConfigurationMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'Ping': grpc.unary_unary_rpc_method_handler(
+                    servicer.Ping,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.PongMessage.SerializeToString,
+            ),
+            'NotifyComplete': grpc.unary_stream_rpc_method_handler(
+                    servicer.NotifyComplete,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'GetNode': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetNode,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'GetWork': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetWork,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'SubmitWork': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitWork,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
+            'SubmitFailure': grpc.unary_unary_rpc_method_handler(
+                    servicer.SubmitFailure,
+                    request_deserializer=dagorama_dot_api_dot_api__pb2.WorkFailedMessage.FromString,
+                    response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
+            ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-        "main.Dagorama", rpc_method_handlers
-    )
+            'main.Dagorama', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
 
-# This class is part of an EXPERIMENTAL API.
+ # This class is part of an EXPERIMENTAL API.
 class Dagorama(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def CreateWorker(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def CreateWorker(request,
             target,
-            "/main.Dagorama/CreateWorker",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/CreateWorker',
             dagorama_dot_api_dot_api__pb2.WorkerConfigurationMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def CreateInstance(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def CreateInstance(request,
             target,
-            "/main.Dagorama/CreateInstance",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/CreateInstance',
             dagorama_dot_api_dot_api__pb2.InstanceConfigurationMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.InstanceMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def CreateNode(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def CreateNode(request,
             target,
-            "/main.Dagorama/CreateNode",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/CreateNode',
             dagorama_dot_api_dot_api__pb2.NodeConfigurationMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Ping(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def Ping(request,
             target,
-            "/main.Dagorama/Ping",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/Ping',
             dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetNode(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def NotifyComplete(request,
             target,
-            "/main.Dagorama/GetNode",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(request, target, '/main.Dagorama/NotifyComplete',
+            dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.SerializeToString,
+            dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetNode(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/GetNode',
             dagorama_dot_api_dot_api__pb2.NodeRetrieveMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def GetWork(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def GetWork(request,
             target,
-            "/main.Dagorama/GetWork",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/GetWork',
             dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def SubmitWork(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def SubmitWork(request,
             target,
-            "/main.Dagorama/SubmitWork",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/SubmitWork',
             dagorama_dot_api_dot_api__pb2.WorkCompleteMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def SubmitFailure(
-        request,
-        target,
-        options=(),
-        channel_credentials=None,
-        call_credentials=None,
-        insecure=False,
-        compression=None,
-        wait_for_ready=None,
-        timeout=None,
-        metadata=None,
-    ):
-        return grpc.experimental.unary_unary(
-            request,
+    def SubmitFailure(request,
             target,
-            "/main.Dagorama/SubmitFailure",
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/main.Dagorama/SubmitFailure',
             dagorama_dot_api_dot_api__pb2.WorkFailedMessage.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-        )
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

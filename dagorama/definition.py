@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from contextlib import contextmanager
+from contextlib import contextmanager, asynccontextmanager
 from functools import wraps
 from inspect import isawaitable, ismethod
 from os import getenv
@@ -7,6 +7,7 @@ from pickle import loads
 from typing import Any, Awaitable, cast
 from uuid import UUID, uuid4
 
+from grpc import aio as grpc_aio
 import grpc
 
 import dagorama.api.api_pb2 as pb2
@@ -88,6 +89,16 @@ def dagorama_context():
         yield pb2_grpc.DagoramaStub(channel)
 
 
+@asynccontextmanager
+async def dagorama_context_async():
+    host = getenv("DAGORAMA_HOST", "localhost")
+    port = getenv("DAGORAMA_PORT", "50051")
+
+    # TODO: Get global context otherwise creates it
+    async with grpc_aio.insecure_channel(f"{host}:{port}") as channel:
+        yield pb2_grpc.DagoramaStub(channel)
+
+
 def generate_instance_id() -> UUID:
     # If we are calling locally, create a fake identifier that doesn't require
     # a broker connection
@@ -122,7 +133,30 @@ def inject_instance(instance):
     return decorator
 
 
-def resolve(instance: DAGInstance, promise: DAGPromise):
+async def wait_for_resolution(
+    context: pb2_grpc.DagoramaStub,
+    instance_id: str,
+    identifier: str
+):
+    """
+    This function will block until a DAGPromise result is ready.
+
+    """
+    # Create a valid request message
+    request = pb2_grpc.StreamRequest(value='Hello, Server!')
+
+    # Make the call
+    response_iterator = context.StreamValue(request)
+
+    async for response in response_iterator:
+        print(response.responseValue)
+
+
+async def resolve(
+    instance: DAGInstance,
+    promise: DAGPromise,
+    wait_for_results: bool = True,
+):
     """
     Given a promise (typically of the initial_entrypoint), will recursively resolve
     promises in a return value chain. This allows you to recover a "final" value after
@@ -132,11 +166,11 @@ def resolve(instance: DAGInstance, promise: DAGPromise):
     then return the true value.
 
     """
-    with dagorama_context() as context:
+    async with dagorama_context_async() as context:
         current_return_value = promise
 
         while isinstance(current_return_value, DAGPromise):
-            node = context.GetNode(
+            node = await context.GetNode(
                 pb2.NodeRetrieveMessage(
                     instanceId=str(instance.instance_id),
                     identifier=str(current_return_value.identifier),
@@ -144,7 +178,14 @@ def resolve(instance: DAGInstance, promise: DAGPromise):
             )
 
             if not len(node.resolvedValue):
-                return None
+                if not wait_for_results:
+                    return None
+                else:
+                    await wait_for_resolution(
+                        context=context,
+                        instance_id=str(instance.instance_id),
+                        identifier=str(current_return_value.identifier),
+                    )
 
             resolved = loads(node.resolvedValue)
             if resolved is None:

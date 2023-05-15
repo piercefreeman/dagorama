@@ -194,17 +194,28 @@ Dagorama should satisfy typehints the same way that normal functions do. In othe
 
 ## Writing Tests
 
-You can run DAGs by setting up your testing harness with a running broker and then calling commands just like you normally do. This has a couple drawbacks though:
-- You'll need to have a running broker to run your tests
-- If a DAG fails, the traceback won't be internally accessible to the test runner
+When unit testing daemons, we typically want:
+- Tracebacks to throw and get captured by our testing harness
+- Ability to patch runtime return values with `unittest.mock`
+- Optionally run tests without an active broker
 
-Alternatively, dagorama offers a configuration to call commands inline. These will run in the existing event loop and block until they are completed, allowing tracebacks and exceptions to propagate through to your testing framework.
+These are difficult to achieve when you have a separate worker process consuming from a centralized broker. Instead, use one of these two patterns:
+
+1. Environment configuration to call commands inline. These will run in the existing event loop and block until they are completed, allowing tracebacks and exceptions to propagate through to your testing framework.
 
 To activate this behavior set the `DAGORAMA_INLINE` environment variable:
 
 ```python
 from os import environ
 environ["DAGORAMA_INLINE"] = "true"
+```
+
+2. Run the worker inline in the unit test. This runs the same logic that a separate worker would (reads from the broker, writes results, etc) but is conducted inline with the unit tests. Note that this still requires a broker running while executing the tests.
+
+```python
+from dagorama.runner import execute_worker
+
+execute_worker(infinite_loop=False, catch_exceptions=False)
 ```
 
 ## Development

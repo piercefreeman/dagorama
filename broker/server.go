@@ -10,6 +10,10 @@ type BrokerServer struct {
 	pb.UnimplementedDagoramaServer
 
 	broker *Broker
+
+	// Tie the (instance id, identifier) that is being completed
+	// with a lock that we can use to unlock the waiting streams
+	subscriptionMutexes map[string,Mutex]
 }
 
 func NewBrokerServer() *BrokerServer {
@@ -117,6 +121,10 @@ func (s *BrokerServer) SubmitWork(ctx context.Context, in *pb.WorkCompleteMessag
 	node := instance.GetNode(in.NodeId)
 	node.ExecutionDidResolve(in.Result)
 
+	// Notify the agents that are waiting that we can finally
+	// unblock this value
+	subscriptionMutexes.awake()
+
 	return s.nodeToMessage(node), nil
 }
 
@@ -162,4 +170,15 @@ func (s *BrokerServer) nodeToMessage(node *DAGNode) *pb.NodeMessage {
 		Completed:     node.completed,
 		InstanceId:    node.instance.identifier,
 	}
+}
+
+func (s *BrokerServer) NotifyComplete(req *pb.CompleteSubscriptionRequest, stream pb.Dagorama_NotifyCompleteServer) error {
+	// Create a new entry in the mutex blocking field
+	// Block and wait to wake up to perform a new search on these notification params
+
+	res := &pb.NodeMessage{ResponseValue: "Hello, Client!"}
+	if err := stream.Send(res); err != nil {
+		return err
+	}
+	return nil
 }
