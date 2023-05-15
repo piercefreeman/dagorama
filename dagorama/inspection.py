@@ -1,3 +1,4 @@
+from inspect import Parameter, signature
 from typing import Any, Callable
 
 from dagorama.models.promise import DAGPromise
@@ -74,3 +75,37 @@ def map_promises(obj: Any, identifier_mapper: Callable[[DAGPromise], Any]) -> An
         return identifier_mapper(obj)
     else:
         return obj
+
+
+def verify_function_call(
+    fn: Callable, calling_args: list[Any], calling_kwargs: dict[str, Any]
+):
+    """
+    Verify that we can call a function with the given arguments. This attempts to mirror
+    Python's internal logic for calling functions, but is 100% at parity.
+
+    """
+    params = signature(fn).parameters
+
+    # Check if the number of calling_args is greater than the function's positional parameters
+    if len(calling_args) > len(
+        [
+            p
+            for p in params.values()
+            if p.default == Parameter.empty
+            and p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
+        ]
+    ):
+        raise TypeError("Too many positional arguments provided")
+
+    # Check if there is any parameter in calling_kwargs that is not in the function's parameters
+    if not all(k in params for k in calling_kwargs):
+        raise TypeError("Invalid keyword argument(s) provided")
+
+    # Check if the number of required arguments in the function is greater than the number of arguments provided
+    if len([p for p in params.values() if p.default == Parameter.empty]) > len(
+        calling_args
+    ) + len(calling_kwargs):
+        raise TypeError("Missing required argument(s)")
+
+    return True

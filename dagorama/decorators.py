@@ -9,7 +9,7 @@ from uuid import uuid4
 import dagorama.api.api_pb2 as pb2
 from dagorama.code_signature import calculate_function_hash
 from dagorama.definition import DAGDefinition, DAGInstance, dagorama_context
-from dagorama.inspection import find_promises
+from dagorama.inspection import find_promises, verify_function_call
 from dagorama.logging import get_logger
 from dagorama.models.arguments import DAGArguments
 from dagorama.models.promise import DAGPromise
@@ -146,6 +146,9 @@ class dagorama:
             instance = args[0]
         else:
             raise ValueError("@dagorama can only be called on DAGInstances")
+
+        # Check that the function support the given runtime parameters
+        verify_function_call(func, args, kwargs)
 
         # Can't be provided as an explicit keyword parameter because of a mypy constraint with P.kwargs having
         # to capture everything
