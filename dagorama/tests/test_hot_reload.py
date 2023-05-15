@@ -1,11 +1,12 @@
-import pytest
-from unittest.mock import MagicMock, call
 from subprocess import Popen
-from watchdog.events import FileSystemEvent
-from dagorama.hot_reload import EventHandler, Observer, run_hot_reload_worker
-from unittest.mock import ANY, patch
-from click.testing import CliRunner
 from time import sleep
+from unittest.mock import ANY, MagicMock, call, patch
+
+import pytest
+from click.testing import CliRunner
+from watchdog.events import FileSystemEvent
+
+from dagorama.hot_reload import EventHandler, Observer, run_hot_reload_worker
 
 REBOOT_COMMAND = "echo 'Rebooting worker...' && poetry run worker"
 

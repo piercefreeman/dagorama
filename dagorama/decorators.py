@@ -3,11 +3,13 @@ from dataclasses import dataclass
 from functools import wraps
 from inspect import iscoroutinefunction
 from logging import warning
+from os import environ
 from typing import Any, ParamSpec, TypeVar, cast
 from uuid import uuid4
 
 import dagorama.api.api_pb2 as pb2
 from dagorama.code_signature import calculate_function_hash
+from dagorama.settings import should_run_inline
 from dagorama.definition import DAGDefinition, DAGInstance, dagorama_context
 from dagorama.inspection import find_promises
 from dagorama.logging import get_logger
@@ -146,7 +148,10 @@ class dagorama:
         # Can't be provided as an explicit keyword parameter because of a mypy constraint with P.kwargs having
         # to capture everything
         # https://github.com/python/typing/discussions/1191
-        greedy_execution = kwargs.pop("greedy_execution", False)
+        greedy_execution = (
+            kwargs.pop("greedy_execution", False)
+            or should_run_inline()
+        )
         if greedy_execution:
             result = func(*args, **kwargs)
             return WrapperResults(result=result)

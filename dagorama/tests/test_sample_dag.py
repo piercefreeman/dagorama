@@ -1,10 +1,13 @@
 from contextlib import contextmanager
 
 import pytest
+from unittest.mock import ANY
 
 from dagorama.decorators import dagorama
 from dagorama.definition import DAGDefinition, resolve
 from dagorama.runner import CodeMismatchException, execute_worker
+from dagorama.models.promise import DAGPromise
+from dagorama.models.arguments import DAGArguments
 
 
 class CustomDag(DAGDefinition):
@@ -62,6 +65,16 @@ def test_sample_dag_1(broker):
     dag = CustomDag()
     dag_instance, dag_result = dag(1)
 
+    # We should not yet execute the DAG
+    assert dag_result == DAGPromise(
+        identifier=ANY,
+        function_name="dagorama.tests.test_sample_dag:CustomDag.entrypoint",
+        arguments=DAGArguments(
+            calltime_args=(1,),
+            calltime_kwargs={},
+        )
+    )
+
     execute_worker(infinite_loop=False, catch_exceptions=False)
 
     assert resolve(dag_instance, dag_result) == 9
@@ -76,3 +89,9 @@ def test_sample_dag_worker_code_mismatch(broker):
     with modify_entrypoint_signature():
         with pytest.raises(CodeMismatchException):
             execute_worker(infinite_loop=False, catch_exceptions=False)
+
+
+def test_inline_mode(inline_dag):
+    dag = CustomDag()
+    _, result = dag(1)
+    assert result == 9

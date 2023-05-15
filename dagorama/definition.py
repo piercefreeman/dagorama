@@ -12,6 +12,7 @@ import grpc
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
 from dagorama.models.promise import DAGPromise
+from dagorama.settings import should_run_inline
 
 LAUNCH_RETURN = tuple["DAGInstance", DAGPromise]
 
@@ -88,6 +89,11 @@ def dagorama_context():
 
 
 def generate_instance_id() -> UUID:
+    # If we are calling locally, create a fake identifier that doesn't require
+    # a broker connection
+    if should_run_inline():
+        return f"local_{uuid4()}"
+
     # Calling indicates that we should spin off a new DAG instance
     with dagorama_context() as context:
         instance_id = uuid4()
@@ -120,7 +126,8 @@ def inject_instance(instance):
 def resolve(instance: DAGInstance, promise: DAGPromise):
     """
     Given a promise (typically of the initial_entrypoint), will recursively resolve
-    promises in a return value chain.
+    promises in a return value chain. This allows you to recover a "final" value after
+    a lot of intermediate processing stages.
 
     ie. Promise A -> Promise B -> Promise C will shortcut to Promise C, which will
     then return the true value.

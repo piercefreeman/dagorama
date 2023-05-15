@@ -192,6 +192,21 @@ docker pull piercefreeman/dagorama-broker:latest
 
 Dagorama should satisfy typehints the same way that normal functions do. In other words, you can treat the DAGPromise returned as a fulfilled value before passing it into other functions downstream of the main DAG.
 
+## Writing Tests
+
+You can run DAGs by setting up your testing harness with a running broker and then calling commands just like you normally do. This has a couple drawbacks though:
+- You'll need to have a running broker to run your tests
+- If a DAG fails, the traceback won't be internally accessible to the test runner
+
+Alternatively, dagorama offers a configuration to call commands inline. These will run in the existing event loop and block until they are completed, allowing tracebacks and exceptions to propagate through to your testing framework.
+
+To activate this behavior set the `DAGORAMA_INLINE` environment variable:
+
+```python
+from os import environ
+environ["DAGORAMA_INLINE"] = "true"
+```
+
 ## Development
 
 Hacking on dagorama is encouraged. Here are some quick getting started steps.

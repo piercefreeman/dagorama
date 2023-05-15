@@ -1,7 +1,7 @@
 import time
 from subprocess import Popen
 
-from click import command, secho, option
+from click import command, option, secho
 from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
