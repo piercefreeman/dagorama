@@ -25,7 +25,7 @@ class DagoramaStub:
         dagorama.api.api_pb2.WorkerMessage,
         dagorama.api.api_pb2.PongMessage,
     ]
-    NotifyComplete: grpc.UnaryStreamMultiCallable[
+    SubscribeResolution: grpc.UnaryStreamMultiCallable[
         dagorama.api.api_pb2.CompleteSubscriptionRequest,
         dagorama.api.api_pb2.NodeMessage,
     ]
@@ -72,7 +72,7 @@ class DagoramaServicer(metaclass=abc.ABCMeta):
         context: grpc.ServicerContext,
     ) -> dagorama.api.api_pb2.PongMessage: ...
     @abc.abstractmethod
-    def NotifyComplete(
+    def SubscribeResolution(
         self,
         request: dagorama.api.api_pb2.CompleteSubscriptionRequest,
         context: grpc.ServicerContext,

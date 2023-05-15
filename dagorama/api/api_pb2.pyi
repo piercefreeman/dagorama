@@ -142,6 +142,7 @@ class NodeMessage(google.protobuf.message.Message):
     SOURCES_FIELD_NUMBER: builtins.int
     COMPLETED_FIELD_NUMBER: builtins.int
     INSTANCEID_FIELD_NUMBER: builtins.int
+    PERMANENTLYFAILED_FIELD_NUMBER: builtins.int
     identifier: builtins.str
     functionName: builtins.str
     functionHash: builtins.str
@@ -158,6 +159,7 @@ class NodeMessage(google.protobuf.message.Message):
         """
     completed: builtins.bool
     instanceId: builtins.str
+    permanentlyFailed: builtins.bool
     def __init__(
         self,
         *,
@@ -171,8 +173,9 @@ class NodeMessage(google.protobuf.message.Message):
         sources: collections.abc.Iterable[global___NodeMessage] | None = ...,
         completed: builtins.bool = ...,
         instanceId: builtins.str = ...,
+        permanentlyFailed: builtins.bool = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "queueName", b"queueName", "resolvedValue", b"resolvedValue", "sources", b"sources", "taintName", b"taintName"]) -> None: ...
+    def ClearField(self, field_name: typing_extensions.Literal["arguments", b"arguments", "completed", b"completed", "functionHash", b"functionHash", "functionName", b"functionName", "identifier", b"identifier", "instanceId", b"instanceId", "permanentlyFailed", b"permanentlyFailed", "queueName", b"queueName", "resolvedValue", b"resolvedValue", "sources", b"sources", "taintName", b"taintName"]) -> None: ...
 
 global___NodeMessage = NodeMessage
 

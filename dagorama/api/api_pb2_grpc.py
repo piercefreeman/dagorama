@@ -34,8 +34,8 @@ class DagoramaStub(object):
                 request_serializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.SerializeToString,
                 response_deserializer=dagorama_dot_api_dot_api__pb2.PongMessage.FromString,
                 )
-        self.NotifyComplete = channel.unary_stream(
-                '/main.Dagorama/NotifyComplete',
+        self.SubscribeResolution = channel.unary_stream(
+                '/main.Dagorama/SubscribeResolution',
                 request_serializer=dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.SerializeToString,
                 response_deserializer=dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
                 )
@@ -88,7 +88,7 @@ class DagoramaServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def NotifyComplete(self, request, context):
+    def SubscribeResolution(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -141,8 +141,8 @@ def add_DagoramaServicer_to_server(servicer, server):
                     request_deserializer=dagorama_dot_api_dot_api__pb2.WorkerMessage.FromString,
                     response_serializer=dagorama_dot_api_dot_api__pb2.PongMessage.SerializeToString,
             ),
-            'NotifyComplete': grpc.unary_stream_rpc_method_handler(
-                    servicer.NotifyComplete,
+            'SubscribeResolution': grpc.unary_stream_rpc_method_handler(
+                    servicer.SubscribeResolution,
                     request_deserializer=dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.FromString,
                     response_serializer=dagorama_dot_api_dot_api__pb2.NodeMessage.SerializeToString,
             ),
@@ -245,7 +245,7 @@ class Dagorama(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def NotifyComplete(request,
+    def SubscribeResolution(request,
             target,
             options=(),
             channel_credentials=None,
@@ -255,7 +255,7 @@ class Dagorama(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_stream(request, target, '/main.Dagorama/NotifyComplete',
+        return grpc.experimental.unary_stream(request, target, '/main.Dagorama/SubscribeResolution',
             dagorama_dot_api_dot_api__pb2.CompleteSubscriptionRequest.SerializeToString,
             dagorama_dot_api_dot_api__pb2.NodeMessage.FromString,
             options, channel_credentials,

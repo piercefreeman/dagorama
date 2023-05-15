@@ -26,7 +26,7 @@ type DagoramaClient interface {
 	CreateInstance(ctx context.Context, in *InstanceConfigurationMessage, opts ...grpc.CallOption) (*InstanceMessage, error)
 	CreateNode(ctx context.Context, in *NodeConfigurationMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	Ping(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*PongMessage, error)
-	NotifyComplete(ctx context.Context, in *CompleteSubscriptionRequest, opts ...grpc.CallOption) (Dagorama_NotifyCompleteClient, error)
+	SubscribeResolution(ctx context.Context, in *CompleteSubscriptionRequest, opts ...grpc.CallOption) (Dagorama_SubscribeResolutionClient, error)
 	GetNode(ctx context.Context, in *NodeRetrieveMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	GetWork(ctx context.Context, in *WorkerMessage, opts ...grpc.CallOption) (*NodeMessage, error)
 	SubmitWork(ctx context.Context, in *WorkCompleteMessage, opts ...grpc.CallOption) (*NodeMessage, error)
@@ -77,12 +77,12 @@ func (c *dagoramaClient) Ping(ctx context.Context, in *WorkerMessage, opts ...gr
 	return out, nil
 }
 
-func (c *dagoramaClient) NotifyComplete(ctx context.Context, in *CompleteSubscriptionRequest, opts ...grpc.CallOption) (Dagorama_NotifyCompleteClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Dagorama_ServiceDesc.Streams[0], "/main.Dagorama/NotifyComplete", opts...)
+func (c *dagoramaClient) SubscribeResolution(ctx context.Context, in *CompleteSubscriptionRequest, opts ...grpc.CallOption) (Dagorama_SubscribeResolutionClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Dagorama_ServiceDesc.Streams[0], "/main.Dagorama/SubscribeResolution", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &dagoramaNotifyCompleteClient{stream}
+	x := &dagoramaSubscribeResolutionClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -92,16 +92,16 @@ func (c *dagoramaClient) NotifyComplete(ctx context.Context, in *CompleteSubscri
 	return x, nil
 }
 
-type Dagorama_NotifyCompleteClient interface {
+type Dagorama_SubscribeResolutionClient interface {
 	Recv() (*NodeMessage, error)
 	grpc.ClientStream
 }
 
-type dagoramaNotifyCompleteClient struct {
+type dagoramaSubscribeResolutionClient struct {
 	grpc.ClientStream
 }
 
-func (x *dagoramaNotifyCompleteClient) Recv() (*NodeMessage, error) {
+func (x *dagoramaSubscribeResolutionClient) Recv() (*NodeMessage, error) {
 	m := new(NodeMessage)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -153,7 +153,7 @@ type DagoramaServer interface {
 	CreateInstance(context.Context, *InstanceConfigurationMessage) (*InstanceMessage, error)
 	CreateNode(context.Context, *NodeConfigurationMessage) (*NodeMessage, error)
 	Ping(context.Context, *WorkerMessage) (*PongMessage, error)
-	NotifyComplete(*CompleteSubscriptionRequest, Dagorama_NotifyCompleteServer) error
+	SubscribeResolution(*CompleteSubscriptionRequest, Dagorama_SubscribeResolutionServer) error
 	GetNode(context.Context, *NodeRetrieveMessage) (*NodeMessage, error)
 	GetWork(context.Context, *WorkerMessage) (*NodeMessage, error)
 	SubmitWork(context.Context, *WorkCompleteMessage) (*NodeMessage, error)
@@ -177,8 +177,8 @@ func (UnimplementedDagoramaServer) CreateNode(context.Context, *NodeConfiguratio
 func (UnimplementedDagoramaServer) Ping(context.Context, *WorkerMessage) (*PongMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ping not implemented")
 }
-func (UnimplementedDagoramaServer) NotifyComplete(*CompleteSubscriptionRequest, Dagorama_NotifyCompleteServer) error {
-	return status.Errorf(codes.Unimplemented, "method NotifyComplete not implemented")
+func (UnimplementedDagoramaServer) SubscribeResolution(*CompleteSubscriptionRequest, Dagorama_SubscribeResolutionServer) error {
+	return status.Errorf(codes.Unimplemented, "method SubscribeResolution not implemented")
 }
 func (UnimplementedDagoramaServer) GetNode(context.Context, *NodeRetrieveMessage) (*NodeMessage, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetNode not implemented")
@@ -277,24 +277,24 @@ func _Dagorama_Ping_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Dagorama_NotifyComplete_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _Dagorama_SubscribeResolution_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(CompleteSubscriptionRequest)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(DagoramaServer).NotifyComplete(m, &dagoramaNotifyCompleteServer{stream})
+	return srv.(DagoramaServer).SubscribeResolution(m, &dagoramaSubscribeResolutionServer{stream})
 }
 
-type Dagorama_NotifyCompleteServer interface {
+type Dagorama_SubscribeResolutionServer interface {
 	Send(*NodeMessage) error
 	grpc.ServerStream
 }
 
-type dagoramaNotifyCompleteServer struct {
+type dagoramaSubscribeResolutionServer struct {
 	grpc.ServerStream
 }
 
-func (x *dagoramaNotifyCompleteServer) Send(m *NodeMessage) error {
+func (x *dagoramaSubscribeResolutionServer) Send(m *NodeMessage) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -412,8 +412,8 @@ var Dagorama_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "NotifyComplete",
-			Handler:       _Dagorama_NotifyComplete_Handler,
+			StreamName:    "SubscribeResolution",
+			Handler:       _Dagorama_SubscribeResolution_Handler,
 			ServerStreams: true,
 		},
 	},

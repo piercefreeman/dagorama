@@ -99,8 +99,9 @@ def verify_function_call(
         raise TypeError("Too many positional arguments provided")
 
     # Check if there is any parameter in calling_kwargs that is not in the function's parameters
-    if not all(k in params for k in calling_kwargs):
-        raise TypeError("Invalid keyword argument(s) provided")
+    invalid_kwargs = set(calling_kwargs.keys()) - set(params.keys()) - {"greedy_execution"}
+    if invalid_kwargs:
+        raise TypeError(f"Invalid keyword argument(s) provided: {invalid_kwargs} method signature {list(params.keys())}")
 
     # Check if the number of required arguments in the function is greater than the number of arguments provided
     if len([p for p in params.values() if p.default == Parameter.empty]) > len(

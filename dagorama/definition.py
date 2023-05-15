@@ -9,6 +9,7 @@ from uuid import UUID, uuid4
 
 from grpc import aio as grpc_aio
 import grpc
+from asyncio import run
 
 import dagorama.api.api_pb2 as pb2
 import dagorama.api.api_pb2_grpc as pb2_grpc
@@ -137,22 +138,19 @@ async def wait_for_resolution(
     context: pb2_grpc.DagoramaStub,
     instance_id: str,
     identifier: str
-):
+) -> pb2.NodeMessage:
     """
     This function will block until a DAGPromise result is ready.
 
     """
-    # Create a valid request message
-    request = pb2_grpc.StreamRequest(value='Hello, Server!')
+    request = pb2.CompleteSubscriptionRequest(instanceId=instance_id, identifier=identifier)
 
-    # Make the call
-    response_iterator = context.StreamValue(request)
-
-    async for response in response_iterator:
-        print(response.responseValue)
+    # Wait for the first result to come back from the stream
+    async for response in context.SubscribeResolution(request):
+        return response
 
 
-async def resolve(
+async def resolve_async(
     instance: DAGInstance,
     promise: DAGPromise,
     wait_for_results: bool = True,
@@ -181,7 +179,7 @@ async def resolve(
                 if not wait_for_results:
                     return None
                 else:
-                    await wait_for_resolution(
+                    node = await wait_for_resolution(
                         context=context,
                         instance_id=str(instance.instance_id),
                         identifier=str(current_return_value.identifier),
@@ -194,3 +192,10 @@ async def resolve(
             current_return_value = resolved
 
         return current_return_value
+
+def resolve(
+    instance: DAGInstance,
+    promise: DAGPromise,
+    wait_for_results: bool = True,
+):
+    return run(resolve_async(instance, promise, wait_for_results))

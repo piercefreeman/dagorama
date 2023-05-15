@@ -40,7 +40,8 @@ type DAGNode struct {
 	resolvedValue []byte
 
 	// True if this node has resolved its execution
-	completed bool
+	completed         bool
+	permanentlyFailed bool
 
 	// The instance that spawned this DAG node
 	instance *DAGInstance
@@ -99,6 +100,16 @@ func (node *DAGNode) ExecutionDidFail(traceback string) {
 	node.instance.broker.BackoffNode(node)
 
 	// Update the database
+	if node.instance.broker.database != nil {
+		node.UpsertIntoDatabase(node.instance.broker.database)
+	}
+}
+
+func (node *DAGNode) ExecutionDidPermanentlyFail() {
+	node.ReleaseWorkerLock()
+
+	node.permanentlyFailed = true
+
 	if node.instance.broker.database != nil {
 		node.UpsertIntoDatabase(node.instance.broker.database)
 	}
@@ -170,6 +181,7 @@ func (node *DAGNode) UpsertIntoDatabase(db *bun.DB) error {
 		}(),
 		ResolvedValue:                     node.resolvedValue,
 		Completed:                         node.completed,
+		PermanentlyFailed:                 node.permanentlyFailed,
 		InstanceIdentifier:                node.instance.identifier,
 		RetryPolicyEnabled:                node.retryPolicy != nil,
 		RetryPolicyCurrentAttempt:         TernaryIfDelayed(node.retryPolicy != nil, func() int { return node.retryPolicy.currentAttempt }, func() int { return -1 }),

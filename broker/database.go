@@ -50,6 +50,7 @@ type PersistentDAGNode struct {
 	DestinationIdentifiers []string `bun:",array" dagorama_db:"auto-update"`
 	ResolvedValue          []byte   `dagorama_db:"auto-update"`
 	Completed              bool     `dagorama_db:"auto-update"`
+	PermanentlyFailed      bool     `dagorama_db:"auto-update"`
 	InstanceIdentifier     string   `dagorama_db:"auto-update"`
 
 	RetryPolicyEnabled                bool `dagorama_db:"auto-update"`

@@ -1,7 +1,7 @@
 import pytest
 
 from dagorama.decorators import dagorama
-from dagorama.definition import DAGDefinition, resolve
+from dagorama.definition import DAGDefinition, resolve, resolve_async
 from dagorama.retry import ExponentialRetry, StaticRetry
 from dagorama.runner import execute_worker, execute_worker_async
 
@@ -69,7 +69,7 @@ def test_custom_name(broker):
         infinite_loop=False,
         catch_exceptions=False,
     )
-    assert resolve(dag_instance, dag_result) == 10
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == 10
 
     dag = CustomNameDag()
     dag_instance, dag_result = dag()
@@ -80,7 +80,7 @@ def test_custom_name(broker):
         infinite_loop=False,
         catch_exceptions=False,
     )
-    assert resolve(dag_instance, dag_result) == None
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == None
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_async(broker):
         infinite_loop=False,
         catch_exceptions=False,
     )
-    assert resolve(dag_instance, dag_result) == 10
+    assert (await resolve_async(dag_instance, dag_result, wait_for_results=False)) == 10
 
 
 def test_taint_name(broker):
@@ -103,13 +103,13 @@ def test_taint_name(broker):
 
     # Should not run a tained queue by default
     execute_worker(infinite_loop=False, catch_exceptions=False)
-    assert resolve(dag_instance, dag_result) == None
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == None
 
     # Require specific allowance
     execute_worker(
         queue_tolerations=["test_taint"], infinite_loop=False, catch_exceptions=False
     )
-    assert resolve(dag_instance, dag_result) == 10
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == 10
 
 
 @pytest.mark.parametrize(
@@ -121,7 +121,7 @@ def test_erroring_dags(broker, dag_class):
 
     # Should not run a tained queue by default
     execute_worker(infinite_loop=False, catch_exceptions=True)
-    assert resolve(dag_instance, dag_result) == None
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == None
 
 
 def test_custom_third_party_dag(broker):
@@ -132,4 +132,4 @@ def test_custom_third_party_dag(broker):
     dag_instance, dag_result = dag()
 
     execute_worker(infinite_loop=False, catch_exceptions=True)
-    assert resolve(dag_instance, dag_result) == 1
+    assert resolve(dag_instance, dag_result, wait_for_results=False) == 1

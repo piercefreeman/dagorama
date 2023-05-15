@@ -230,6 +230,7 @@ func (broker *Broker) BackoffNode(node *DAGNode) {
 	backoffInterval := node.retryPolicy.getWaitIntervalMilliseconds()
 	if backoffInterval == -1 {
 		// Have exhausted retry attempts, shouldn't queue back
+		node.ExecutionDidPermanentlyFail()
 		return
 	}
 	nextRetryAvailable := time.Now().UnixMilli() + int64(backoffInterval)
